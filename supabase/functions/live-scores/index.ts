@@ -133,11 +133,11 @@ Deno.serve(async (req: Request) => {
     const today = new Date().toISOString().split('T')[0];
 
     const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`,
+      `https://allsportsapi2.p.rapidapi.com/api/matches/live?date=${today}&timezone=UTC`,
       {
         headers: {
-          'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'v3.football.api-sports.io',
+          'x-rapidapi-key': b9c6883414msh11dde2eba098703p1a13fdjsne11249e78db1,
+          'x-rapidapi-host': 'allsportsapi2.p.rapidapi.com',
         },
       }
     );
