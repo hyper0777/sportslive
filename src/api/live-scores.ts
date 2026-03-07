@@ -31,16 +31,16 @@ const teamColors: Record<string, { home: string; away: string }> = {
 export async function handleLiveScoresRequest() {
   try {
     // Try to fetch from API-Football
-    const apiKey = process.env.GATEWAY_API_KEY || 'a2d0f43bc98b633e315301fffe911c6edbca6a9';
+    const apiKey = process.env.GATEWAY_API_KEY || '';
 
     if (!apiKey) {
       throw new Error('No API key configured');
     }
 
-    const response = await fetch('https://v3.football.api-sports.io/fixtures', {
+    const response = await fetch('https://allsportsapi2.p.rapidapi.com/api/matches/live', {
       headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'v3.football.api-sports.io',
+        'X-RapidAPI-Key': b9c6883414msh11dde2eba098703p1a13fdjsne11249e78db1,
+        'X-RapidAPI-Host': 'allsportsapi2.p.rapidapi.com',
       },
     });
 
