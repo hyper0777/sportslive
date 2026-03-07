@@ -25,24 +25,41 @@ export function useScoreSimulator(initialMatches: Match[]) {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
-        // Try to fetch from edge function
-        const response = await fetch('/api/live-scores', {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Supabase configuration missing');
+        }
+
+        const apiUrl = `${supabaseUrl}/functions/v1/live-scores`;
+
+        const response = await fetch(apiUrl, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json',
+          },
         });
 
         if (response.ok && isMounted) {
           const data = await response.json();
-          setState((prev) => ({
-            ...prev,
-            matches: data.matches || initialMatches,
-            source: data.source || 'edge-function',
-            loading: false,
-            error: null,
-            lastUpdated: new Date(),
-          }));
+
+          if (data.matches && data.matches.length > 0) {
+            setState((prev) => ({
+              ...prev,
+              matches: data.matches,
+              source: data.source || 'api',
+              loading: false,
+              error: null,
+              lastUpdated: new Date(),
+            }));
+          } else {
+            throw new Error('No matches available');
+          }
         } else {
-          throw new Error('Failed to fetch scores from edge function');
+          const errorText = await response.text();
+          throw new Error(`API returned ${response.status}: ${errorText}`);
         }
       } catch (err) {
         // Fallback to simulated data
