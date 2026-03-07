@@ -31,7 +31,7 @@ const teamColors: Record<string, { home: string; away: string }> = {
 export async function handleLiveScoresRequest() {
   try {
     // Try to fetch from API-Football
-    const apiKey = process.env.GATEWAY_API_KEY || '';
+    const apiKey = process.env.GATEWAY_API_KEY || 'a2d0f43bc98b633e315301fffe911c6edbca6a9';
 
     if (!apiKey) {
       throw new Error('No API key configured');
