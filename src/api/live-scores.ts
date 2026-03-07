@@ -37,10 +37,10 @@ export async function handleLiveScoresRequest() {
       throw new Error('No API key configured');
     }
 
-    const response = await fetch('https://api-football-v1.p.rapidapi.com/v3/fixtures', {
+    const response = await fetch('https://v3.football.api-sports.io/fixtures', {
       headers: {
         'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+        'X-RapidAPI-Host': 'v3.football.api-sports.io',
       },
     });
 
@@ -64,7 +64,7 @@ export async function handleLiveScoresRequest() {
         awayScore: match.goals.away || 0,
         status: mapFixtureStatus(match.fixture.status.short),
         startTime: new Date().toISOString(),
-        league: 'API Football',
+        league: 'https://v3.football.api-sports.io',
         venue: match.venue.name,
         homeTeamColor: colors.home,
         awayTeamColor: colors.away,
@@ -76,7 +76,7 @@ export async function handleLiveScoresRequest() {
 
     return {
       matches,
-      source: 'api' as const,
+      source: 'https://dashboard.api-football.com/' as const,
     };
   } catch (error) {
     // Fallback to simulated data with time-based score progression
