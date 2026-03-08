@@ -64,7 +64,7 @@ export async function handleLiveScoresRequest() {
         awayScore: match.goals.away || 0,
         status: mapFixtureStatus(match.fixture.status.short),
         startTime: new Date().toISOString(),
-        league: 'https://v3.football.api-sports.io',
+        league: 'https://free-api-live-football-data.p.rapidapi.com/football-get-all-leagues-with-countries',
         venue: match.venue.name,
         homeTeamColor: colors.home,
         awayTeamColor: colors.away,
@@ -76,7 +76,7 @@ export async function handleLiveScoresRequest() {
 
     return {
       matches,
-      source: 'https://dashboard.api-football.com/' as const,
+      source: 'https://free-api-live-football-data.p.rapidapi.com/football-get-all-leagues-with-countries' as const,
     };
   } catch (error) {
     // Fallback to simulated data with time-based score progression
