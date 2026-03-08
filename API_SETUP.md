@@ -1,6 +1,6 @@
 # Real API Integration Setup
 
-Your sports platform is now configured to fetch live match data from API-Football (via RapidAPI).
+Your sports platform is now configured to fetch live match data from API-Football.
 
 ## Getting Your API Key
 
@@ -16,15 +16,19 @@ Your sports platform is now configured to fetch live match data from API-Footbal
 Once you have your API key from RapidAPI:
 
 1. In your project, the Edge Function is already deployed
-2. You need to add the API key as a secret to your Supabase Edge Function
-3. Use this command in your terminal:
+2. Add the API key as a secret to your Supabase Edge Function
+3. Configure the provider:
+
+   - `FOOTBALL_API_PROVIDER=rapidapi` when using a RapidAPI subscription key (default)
+   - `FOOTBALL_API_PROVIDER=apisports` when using an API-SPORTS direct subscription key
+
+4. Use this command in your terminal:
 
 ```bash
-# This will be done automatically through the platform
-# The secret name should be: FOOTBALL_API_KEY
+supabase secrets set FOOTBALL_API_KEY=your_key_here FOOTBALL_API_PROVIDER=rapidapi
 ```
 
-The platform will automatically configure the secret for you.
+If you're using API-SPORTS directly, set `FOOTBALL_API_PROVIDER=apisports`.
 
 ## How It Works
 
