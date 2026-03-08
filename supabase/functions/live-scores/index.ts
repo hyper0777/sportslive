@@ -125,25 +125,33 @@ Deno.serve(async (req: Request) => {
 
   try {
     const apiKey = Deno.env.get('FOOTBALL_API_KEY');
+    const provider = (Deno.env.get('FOOTBALL_API_PROVIDER') || 'rapidapi').toLowerCase();
 
     if (!apiKey) {
       throw new Error('FOOTBALL_API_KEY not configured');
     }
 
     const today = new Date().toISOString().split('T')[0];
-
-    const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`,
-      {
-        headers: {
+    const isRapidApi = provider !== 'apisports';
+    const endpoint = isRapidApi
+      ? `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}&timezone=UTC`
+      : `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`;
+    const headers: Record<string, string> = isRapidApi
+      ? {
           'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'v3.football.api-sports.io',
-        },
-      }
-    );
+          'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+        }
+      : {
+          'x-apisports-key': apiKey,
+        };
+
+    const response = await fetch(endpoint, { headers });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}. Provider=${provider}. Body=${errorText.slice(0, 300)}`
+      );
     }
 
     const data: APIFootballResponse = await response.json();
