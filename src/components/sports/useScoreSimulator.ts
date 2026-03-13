@@ -34,33 +34,42 @@ export function useScoreSimulator(initialMatches: Match[]) {
 
         const apiUrl = `${supabaseUrl}/functions/v1/live-scores`;
 
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        let response;
+        try {
+          response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (fetchErr) {
+          throw new Error(`Failed to connect to Edge Function: ${fetchErr instanceof Error ? fetchErr.message : 'Network error'}`);
+        }
 
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.includes('application/json')) {
-          const responseText = await response.text();
+        // Always read response as text first to diagnose issues
+        let responseText: string;
+        try {
+          responseText = await response.text();
+        } catch (textErr) {
+          throw new Error('Failed to read Edge Function response');
+        }
+
+        // Try to parse as JSON
+        let data: any;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseErr) {
+          // Not JSON, return error with preview of what we got
           throw new Error(
-            `Edge Function returned non-JSON (${response.status}): ${responseText.slice(0, 150)}. ` +
-            `This usually means the function is not properly deployed or configured.`
+            `Edge Function returned invalid JSON (${response.status}). ` +
+            `Response: "${responseText.slice(0, 100)}...". ` +
+            `This usually means the function is not deployed or has a configuration error.`
           );
         }
 
-        let data;
-        try {
-          data = await response.json();
-        } catch (parseErr) {
-          throw new Error('Failed to parse Edge Function response as JSON');
-        }
-
         if (response.ok && isMounted) {
-          if (data.matches && data.matches.length > 0) {
+          if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
             setState((prev) => ({
               ...prev,
               matches: data.matches,
@@ -70,10 +79,12 @@ export function useScoreSimulator(initialMatches: Match[]) {
               lastUpdated: new Date(),
             }));
           } else {
-            throw new Error(data.message || 'No matches available');
+            throw new Error(data?.message || 'No matches available from API');
           }
         } else {
-          throw new Error(data.message || data.error || `API returned ${response.status}`);
+          // Error response
+          const errorMsg = data?.message || data?.error || `API returned ${response.status}`;
+          throw new Error(errorMsg);
         }
       } catch (err) {
         // Fallback to simulated data
@@ -97,15 +108,17 @@ export function useScoreSimulator(initialMatches: Match[]) {
           if (err instanceof Error) {
             const message = err.message;
             if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
-              errorMsg = 'API key not configured - add FOOTBALL_API_KEY to Supabase Edge Function secrets';
-            } else if (message.includes('Failed to fetch') || message.includes('network')) {
-              errorMsg = 'Edge Function unavailable - check Supabase connection';
-            } else if (message.includes('Invalid response')) {
-              errorMsg = 'Edge Function returned invalid response - check function deployment and configuration';
+              errorMsg = 'API key not configured - Deploy live-scores Edge Function and add FOOTBALL_API_KEY secret';
+            } else if (message.includes('Failed to fetch') || message.includes('Network error')) {
+              errorMsg = 'Edge Function unavailable - ensure it is deployed to Supabase';
+            } else if (message.includes('invalid JSON')) {
+              errorMsg = 'Edge Function not deployed - Deploy using: supabase functions deploy live-scores';
             } else if (message.includes('is not defined')) {
-              errorMsg = 'Edge Function has configuration error - verify FOOTBALL_API_KEY is set in Supabase secrets';
+              errorMsg = 'Edge Function deployment error - check Supabase Edge Functions dashboard';
+            } else if (message.includes('No matches available')) {
+              errorMsg = 'No matches today from API (showing simulated data)';
             } else {
-              errorMsg = message;
+              errorMsg = message.length > 100 ? `${message.slice(0, 100)}...` : message;
             }
           }
 
