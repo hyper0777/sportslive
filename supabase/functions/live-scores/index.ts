@@ -128,7 +128,22 @@ Deno.serve(async (req: Request) => {
     const provider = (Deno.env.get('FOOTBALL_API_PROVIDER') || 'rapidapi').toLowerCase();
 
     if (!apiKey) {
-      throw new Error('FOOTBALL_API_KEY not configured');
+      console.error('FOOTBALL_API_KEY not configured in Supabase secrets');
+      return new Response(
+        JSON.stringify({
+          error: 'FOOTBALL_API_KEY not configured in Supabase Edge Function secrets',
+          matches: [],
+          source: 'error',
+          message: 'Please add FOOTBALL_API_KEY and FOOTBALL_API_PROVIDER to your Edge Function secrets',
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
     const today = new Date().toISOString().split('T')[0];

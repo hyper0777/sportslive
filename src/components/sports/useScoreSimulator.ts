@@ -42,9 +42,9 @@ export function useScoreSimulator(initialMatches: Match[]) {
           },
         });
 
-        if (response.ok && isMounted) {
-          const data = await response.json();
+        const data = await response.json();
 
+        if (response.ok && isMounted) {
           if (data.matches && data.matches.length > 0) {
             setState((prev) => ({
               ...prev,
@@ -58,8 +58,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
             throw new Error('No matches available');
           }
         } else {
-          const errorText = await response.text();
-          throw new Error(`API returned ${response.status}: ${errorText}`);
+          throw new Error(data.message || data.error || `API returned ${response.status}`);
         }
       } catch (err) {
         // Fallback to simulated data
@@ -79,17 +78,28 @@ export function useScoreSimulator(initialMatches: Match[]) {
             return match;
           });
 
+          let errorMsg = 'Using simulated data';
+          if (err instanceof Error) {
+            const message = err.message;
+            if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
+              errorMsg = 'API key not configured - add FOOTBALL_API_KEY to Supabase Edge Function secrets';
+            } else if (message.includes('Failed to fetch') || message.includes('network')) {
+              errorMsg = 'Edge Function unavailable - check Supabase connection and API key configuration';
+            } else {
+              errorMsg = message;
+            }
+          }
+
           setState((prev) => ({
             ...prev,
             matches: simulatedMatches,
             source: 'simulated',
             loading: false,
-            error:
-              err instanceof Error
-                ? `Using simulated data: ${err.message}`
-                : 'Using simulated data',
+            error: errorMsg,
             lastUpdated: new Date(),
           }));
+
+          console.error('Score fetch error:', err);
         }
       }
     };
