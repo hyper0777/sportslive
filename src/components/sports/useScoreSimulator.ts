@@ -42,7 +42,22 @@ export function useScoreSimulator(initialMatches: Match[]) {
           },
         });
 
-        const data = await response.json();
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          const responseText = await response.text();
+          throw new Error(
+            `Edge Function returned non-JSON (${response.status}): ${responseText.slice(0, 150)}. ` +
+            `This usually means the function is not properly deployed or configured.`
+          );
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseErr) {
+          throw new Error('Failed to parse Edge Function response as JSON');
+        }
 
         if (response.ok && isMounted) {
           if (data.matches && data.matches.length > 0) {
@@ -55,7 +70,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
               lastUpdated: new Date(),
             }));
           } else {
-            throw new Error('No matches available');
+            throw new Error(data.message || 'No matches available');
           }
         } else {
           throw new Error(data.message || data.error || `API returned ${response.status}`);
@@ -84,7 +99,11 @@ export function useScoreSimulator(initialMatches: Match[]) {
             if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
               errorMsg = 'API key not configured - add FOOTBALL_API_KEY to Supabase Edge Function secrets';
             } else if (message.includes('Failed to fetch') || message.includes('network')) {
-              errorMsg = 'Edge Function unavailable - check Supabase connection and API key configuration';
+              errorMsg = 'Edge Function unavailable - check Supabase connection';
+            } else if (message.includes('Invalid response')) {
+              errorMsg = 'Edge Function returned invalid response - check function deployment and configuration';
+            } else if (message.includes('is not defined')) {
+              errorMsg = 'Edge Function has configuration error - verify FOOTBALL_API_KEY is set in Supabase secrets';
             } else {
               errorMsg = message;
             }
