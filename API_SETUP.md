@@ -23,6 +23,19 @@ Once you have your API key from RapidAPI:
 supabase secrets set FOOTBALL_API_KEY=your_key_here
 ```
 
+## Frontend Supabase Environment Variables
+
+If you see `Supabase configuration missing`, it means the frontend is missing one or both required Vite environment variables.
+
+Add these values to your local `.env` file (you can copy from `.env.example`):
+
+```bash
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+After adding them, restart the Vite dev server.
+
 ## How It Works
 
 1. **Edge Function**: The `live-scores` function fetches data from AllSportsAPI

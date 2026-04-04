@@ -1,5 +1,6 @@
 import { liveMatches } from '@/data/sportsData';
 import type { Match } from '@/data/sportsData';
+import { getSupabaseClientConfig } from '@/lib/supabaseConfig';
 
 interface EdgeFunctionResponse {
   matches: Match[];
@@ -15,19 +16,14 @@ interface EdgeFunctionResponse {
 
 export async function fetchLiveScores() {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !anonKey) {
-      throw new Error('Supabase configuration missing');
-    }
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseClientConfig();
 
     const response = await fetch(
       `${supabaseUrl}/functions/v1/live-scores`,
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Content-Type': 'application/json',
         },
       }
