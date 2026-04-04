@@ -1,10 +1,10 @@
 # Real API Integration Setup
 
-Your sports platform is now configured to fetch live match data from API-Football (via RapidAPI).
+Your sports platform is now configured to fetch live match data from AllSportsAPI (via RapidAPI).
 
 ## Getting Your API Key
 
-1. Go to [RapidAPI API-Football](https://rapidapi.com/api-sports/api/api-football)
+1. Go to [RapidAPI AllSportsAPI](https://rapidapi.com/tipsters/api/allsportsapi2)
 2. Click "Subscribe to Test" or "Pricing"
 3. Choose a plan:
    - **Free Plan**: 100 requests/day (perfect for testing)
@@ -16,19 +16,16 @@ Your sports platform is now configured to fetch live match data from API-Footbal
 Once you have your API key from RapidAPI:
 
 1. In your project, the Edge Function is already deployed
-2. You need to add the API key as a secret to your Supabase Edge Function
+2. Add the API key as a secret to your Supabase Edge Function
 3. Use this command in your terminal:
 
 ```bash
-# This will be done automatically through the platform
-# The secret name should be: FOOTBALL_API_KEY
+supabase secrets set FOOTBALL_API_KEY=your_key_here
 ```
-
-The platform will automatically configure the secret for you.
 
 ## How It Works
 
-1. **Edge Function**: The `live-scores` function fetches data from API-Football
+1. **Edge Function**: The `live-scores` function fetches data from AllSportsAPI
 2. **Frontend**: The app calls the Edge Function every 30 seconds to get fresh data
 3. **Fallback**: If the API is unavailable, it uses simulated data
 4. **Data Indicator**: The app shows which data source is being used (API, Simulated, or Edge Function)

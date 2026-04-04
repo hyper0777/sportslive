@@ -6,67 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface APIFootballFixture {
-  fixture: {
-    id: number;
-    date: string;
-    status: {
-      short: string;
-      long: string;
-      elapsed: number | null;
-    };
-    venue: {
-      name: string;
-      city: string;
-    };
-  };
-  teams: {
-    home: {
-      id: number;
-      name: string;
-      logo: string;
-    };
-    away: {
-      id: number;
-      name: string;
-      logo: string;
-    };
-  };
-  goals: {
-    home: number | null;
-    away: number | null;
-  };
-  score: {
-    halftime: {
-      home: number | null;
-      away: number | null;
-    };
-    fulltime: {
-      home: number | null;
-      away: number | null;
-    };
-  };
-  league: {
-    id: number;
-    name: string;
-    country: string;
-    logo: string;
-    flag: string;
-    season: number;
-    round: string;
-  };
-}
-
-interface APIFootballResponse {
-  get: string;
-  parameters: Record<string, string>;
-  errors: Record<string, unknown>;
-  results: number;
-  paging: {
-    current: number;
-    total: number;
-  };
-  response: APIFootballFixture[];
+interface RawMatch {
+  [key: string]: unknown;
 }
 
 const teamColors: Record<string, { home: string; away: string }> = {
@@ -115,6 +56,41 @@ function getTeamAbbreviation(teamName: string): string {
   return words.map(w => w[0]).join('').substring(0, 3).toUpperCase();
 }
 
+function getNestedValue(obj: Record<string, unknown>, path: string[]): unknown {
+  return path.reduce<unknown>((acc, key) => {
+    if (!acc || typeof acc !== 'object') {
+      return undefined;
+    }
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function toString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
+function normalizeMatches(payload: Record<string, unknown>): RawMatch[] {
+  const candidates = ['matches', 'events', 'response', 'data'];
+
+  for (const key of candidates) {
+    const value = payload[key];
+    if (Array.isArray(value)) {
+      return value as RawMatch[];
+    }
+  }
+
+  return [];
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -130,30 +106,32 @@ Deno.serve(async (req: Request) => {
       throw new Error('FOOTBALL_API_KEY not configured');
     }
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`,
-      {
-        headers: {
-          'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'v3.football.api-sports.io',
-        },
-      }
-    );
+    console.log('Fetching from AllSportsAPI...');
+    const response = await fetch('https://allsportsapi2.p.rapidapi.com/api/matches/live', {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'allsportsapi2.p.rapidapi.com',
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}. Body=${errorText.slice(0, 300)}`
+      );
     }
 
-    const data: APIFootballResponse = await response.json();
+    const data = await response.json() as Record<string, unknown>;
+    const rawMatches = normalizeMatches(data);
 
-    if (!data.response || data.response.length === 0) {
+    if (rawMatches.length === 0) {
       return new Response(
         JSON.stringify({
           matches: [],
           source: 'api',
-          message: 'No matches available for today',
+          message: 'No live matches available right now',
         }),
         {
           headers: {
@@ -164,26 +142,57 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const matches = data.response.slice(0, 20).map((fixture) => {
-      const homeTeam = fixture.teams.home.name;
-      const awayTeam = fixture.teams.away.name;
+    const matches = rawMatches.slice(0, 20).map((match, index) => {
+      const homeTeam = toString(
+        getNestedValue(match, ['homeTeam', 'name']) ?? getNestedValue(match, ['teams', 'home', 'name']),
+        'Home Team'
+      );
+      const awayTeam = toString(
+        getNestedValue(match, ['awayTeam', 'name']) ?? getNestedValue(match, ['teams', 'away', 'name']),
+        'Away Team'
+      );
       const colors = teamColors[homeTeam] || { home: '#6B7280', away: '#9CA3AF' };
+      const status =
+        toString(match['statusType']) ||
+        toString(getNestedValue(match, ['status', 'short']), 'NS');
+      const league = toString(
+        getNestedValue(match, ['tournament', 'name']) ?? getNestedValue(match, ['league', 'name']),
+        'Unknown League'
+      );
+      const venue = toString(
+        getNestedValue(match, ['venue', 'name']) ?? getNestedValue(match, ['venueName']),
+        'TBD'
+      );
+      const startTime = toString(
+        getNestedValue(match, ['startTimestamp']) ?? getNestedValue(match, ['fixture', 'date']),
+        new Date().toISOString()
+      );
+      const homeScore = toNumber(
+        getNestedValue(match, ['homeScore', 'current']) ?? getNestedValue(match, ['goals', 'home']),
+        0
+      );
+      const awayScore = toNumber(
+        getNestedValue(match, ['awayScore', 'current']) ?? getNestedValue(match, ['goals', 'away']),
+        0
+      );
+      const rawId =
+        getNestedValue(match, ['id']) ?? getNestedValue(match, ['fixture', 'id']) ?? `allsports-${index}`;
 
       return {
-        id: `api-${fixture.fixture.id}`,
+        id: `api-${String(rawId)}`,
         homeTeam,
         awayTeam,
-        homeScore: fixture.goals.home || 0,
-        awayScore: fixture.goals.away || 0,
-        status: mapFixtureStatus(fixture.fixture.status.short),
-        startTime: fixture.fixture.date,
-        league: fixture.league.name,
-        venue: fixture.fixture.venue.name || 'TBD',
+        homeScore,
+        awayScore,
+        status: mapFixtureStatus(status),
+        startTime,
+        league,
+        venue,
         homeTeamColor: colors.home,
         awayTeamColor: colors.away,
         homeAbbr: getTeamAbbreviation(homeTeam),
         awayAbbr: getTeamAbbreviation(awayTeam),
-        matchday: parseInt(fixture.league.round.match(/\d+/)?.[0] || '1'),
+        matchday: 1,
         isFavorite: false,
         stats: {
           possession: { home: 50, away: 50 },
@@ -201,7 +210,7 @@ Deno.serve(async (req: Request) => {
         matches,
         source: 'api',
         apiInfo: {
-          provider: 'API-Football',
+          provider: 'AllSportsAPI',
           matchCount: matches.length,
           timestamp: new Date().toISOString(),
         },
