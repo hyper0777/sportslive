@@ -1,4 +1,10 @@
 /// <reference types="vite/client" />
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY)
+const { data, error } = await supabase.functions.invoke('live-scores', {
+  body: { name: 'Functions' },
+})
 
 VITE_SUPABASE_URL=https://plgupdwglfopxjoxwyys.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsZ3VwZHdnbGZvcHhqb3h3eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MTY4MTMsImV4cCI6MjA4ODQ5MjgxM30.L0dVoOa6SAhbTRkLg_wov71TFWZM9biPG63NMaXAMiY
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_e5Q0hbZxDsUPwJ5mHoXnDQ_hjevBy-s
