@@ -120,7 +120,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
             } else if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
               errorMsg = 'Edge Function not deployed - Run: supabase functions deploy live-scores';
             } else if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
-              errorMsg = 'API key not set in Edge Function - Run: supabase secrets set FOOTBALL_API_KEY=your_key FOOTBALL_API_PROVIDER=rapidapi';
+              errorMsg = 'API key not set in Edge Function - Run: supabase secrets set FOOTBALL_API_KEY=your_key FOOTBALL_API_PROVIDER=free-football-api-data';
             } else if (message.includes('invalid JSON')) {
               errorMsg = 'Edge Function error - verify it is deployed and configured correctly';
             } else if (message.includes('No matches available')) {
