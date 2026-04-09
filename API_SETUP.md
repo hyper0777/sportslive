@@ -1,6 +1,6 @@
 # Real API Integration Setup
 
-Your sports platform is now configured to fetch live match data from API-Football.
+Your sports platform is configured to fetch live match data from API-Football and can also use Free Football API Data on RapidAPI.
 
 ## Getting Your API Key
 
@@ -19,16 +19,18 @@ Once you have your API key from RapidAPI:
 2. Add the API key as a secret to your Supabase Edge Function
 3. Configure the provider:
 
-   - `FOOTBALL_API_PROVIDER=rapidapi` when using a RapidAPI subscription key (default)
+   - `FOOTBALL_API_PROVIDER=rapidapi` when using API-Football via RapidAPI (default)
+   - `FOOTBALL_API_PROVIDER=free-football-api-data` when using `free-football-api-data.p.rapidapi.com`
    - `FOOTBALL_API_PROVIDER=apisports` when using an API-SPORTS direct subscription key
 
 4. Use this command in your terminal:
 
 ```bash
-supabase secrets set FOOTBALL_API_KEY=your_key_here FOOTBALL_API_PROVIDER=rapidapi
+supabase secrets set FOOTBALL_API_KEY=your_key_here FOOTBALL_API_PROVIDER=free-football-api-data
 ```
 
 If you're using API-SPORTS directly, set `FOOTBALL_API_PROVIDER=apisports`.
+If you prefer API-Football on RapidAPI, set `FOOTBALL_API_PROVIDER=rapidapi`.
 
 ## How It Works
 
@@ -42,7 +44,7 @@ If you're using API-SPORTS directly, set `FOOTBALL_API_PROVIDER=apisports`.
 The API provides:
 - Real-time match scores
 - Live match status (scheduled, live, halftime, finished)
-- Match fixtures for today
+- Match events for today across available leagues
 - Team information
 - Venue details
 - League information

@@ -6,67 +6,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+type MatchStatus = 'live' | 'finished' | 'scheduled' | 'halftime';
+
+type GenericFixture = {
+  fixtureId: number;
+  date: string;
+  statusShort: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  leagueName: string;
+  venueName: string;
+  round?: string;
+};
+
 interface APIFootballFixture {
   fixture: {
     id: number;
     date: string;
     status: {
       short: string;
-      long: string;
-      elapsed: number | null;
     };
     venue: {
       name: string;
-      city: string;
     };
   };
   teams: {
     home: {
-      id: number;
       name: string;
-      logo: string;
     };
     away: {
-      id: number;
       name: string;
-      logo: string;
     };
   };
   goals: {
     home: number | null;
     away: number | null;
   };
-  score: {
-    halftime: {
-      home: number | null;
-      away: number | null;
-    };
-    fulltime: {
-      home: number | null;
-      away: number | null;
-    };
-  };
   league: {
-    id: number;
     name: string;
-    country: string;
-    logo: string;
-    flag: string;
-    season: number;
     round: string;
   };
-}
-
-interface APIFootballResponse {
-  get: string;
-  parameters: Record<string, string>;
-  errors: Record<string, unknown>;
-  results: number;
-  paging: {
-    current: number;
-    total: number;
-  };
-  response: APIFootballFixture[];
 }
 
 const teamColors: Record<string, { home: string; away: string }> = {
@@ -86,25 +67,34 @@ const teamColors: Record<string, { home: string; away: string }> = {
   'AC Milan': { home: '#DC0000', away: '#DC0000' },
 };
 
-function mapFixtureStatus(status: string): 'live' | 'finished' | 'scheduled' | 'halftime' {
-  const statusMap: Record<string, 'live' | 'finished' | 'scheduled' | 'halftime'> = {
-    'NS': 'scheduled',
-    'TBD': 'scheduled',
+function mapFixtureStatus(status: string): MatchStatus {
+  const normalized = status.toUpperCase();
+  const statusMap: Record<string, MatchStatus> = {
+    NS: 'scheduled',
+    TBD: 'scheduled',
+    SCHEDULED: 'scheduled',
+    NOT_STARTED: 'scheduled',
+    UPCOMING: 'scheduled',
     '1H': 'live',
-    'HT': 'halftime',
     '2H': 'live',
-    'ET': 'live',
-    'P': 'live',
-    'FT': 'finished',
-    'AET': 'finished',
-    'PEN': 'finished',
-    'PST': 'finished',
-    'CANC': 'finished',
-    'ABD': 'finished',
-    'SUSP': 'live',
+    LIVE: 'live',
+    IN_PLAY: 'live',
+    ET: 'live',
+    P: 'live',
+    HT: 'halftime',
+    HALFTIME: 'halftime',
+    FT: 'finished',
+    FINISHED: 'finished',
+    ENDED: 'finished',
+    AET: 'finished',
+    PEN: 'finished',
+    PST: 'finished',
+    CANC: 'finished',
+    ABD: 'finished',
+    SUSP: 'live',
   };
 
-  return statusMap[status] || 'scheduled';
+  return statusMap[normalized] || 'scheduled';
 }
 
 function getTeamAbbreviation(teamName: string): string {
@@ -112,7 +102,99 @@ function getTeamAbbreviation(teamName: string): string {
   if (words.length === 1) {
     return teamName.substring(0, 3).toUpperCase();
   }
-  return words.map(w => w[0]).join('').substring(0, 3).toUpperCase();
+  return words.map((w) => w[0]).join('').substring(0, 3).toUpperCase();
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+  return null;
+}
+
+function extractFixtures(payload: unknown): GenericFixture[] {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const data = payload as Record<string, unknown>;
+
+  // API-Football shape
+  if (Array.isArray(data.response)) {
+    return data.response
+      .map((item) => {
+        const fixture = item as APIFootballFixture;
+        if (!fixture?.fixture?.id || !fixture?.teams?.home?.name || !fixture?.teams?.away?.name) {
+          return null;
+        }
+
+        return {
+          fixtureId: fixture.fixture.id,
+          date: fixture.fixture.date,
+          statusShort: fixture.fixture.status?.short || 'NS',
+          homeTeam: fixture.teams.home.name,
+          awayTeam: fixture.teams.away.name,
+          homeGoals: fixture.goals?.home ?? 0,
+          awayGoals: fixture.goals?.away ?? 0,
+          leagueName: fixture.league?.name || 'Unknown League',
+          venueName: fixture.fixture.venue?.name || 'TBD',
+          round: fixture.league?.round,
+        };
+      })
+      .filter((item): item is GenericFixture => item !== null);
+  }
+
+  // Some free football APIs return an array directly or under data/events/results
+  const candidateArrays: unknown[] = [];
+  if (Array.isArray(data.data)) candidateArrays.push(data.data);
+  if (Array.isArray(data.events)) candidateArrays.push(data.events);
+  if (Array.isArray(data.results)) candidateArrays.push(data.results);
+  if (Array.isArray(payload)) candidateArrays.push(payload);
+
+  for (const candidate of candidateArrays) {
+    const rows = candidate as Record<string, unknown>[];
+    const normalized = rows
+      .map((row) => {
+        const fixtureId = toNumberOrNull(row.fixture_id ?? row.id ?? row.event_id ?? row.match_id);
+        const homeTeam = String(
+          row.homeTeam ?? row.home_team ?? row.event_home_team ?? row.team_home ?? ''
+        ).trim();
+        const awayTeam = String(
+          row.awayTeam ?? row.away_team ?? row.event_away_team ?? row.team_away ?? ''
+        ).trim();
+
+        if (!fixtureId || !homeTeam || !awayTeam) {
+          return null;
+        }
+
+        return {
+          fixtureId,
+          date: String(row.date ?? row.event_date ?? row.match_date ?? new Date().toISOString()),
+          statusShort: String(
+            row.status ?? row.event_status ?? row.state ?? row.match_status ?? 'NS'
+          ),
+          homeTeam,
+          awayTeam,
+          homeGoals: toNumberOrNull(
+            row.homeGoals ?? row.home_score ?? row.event_home_final_result ?? row.goals_home
+          ),
+          awayGoals: toNumberOrNull(
+            row.awayGoals ?? row.away_score ?? row.event_away_final_result ?? row.goals_away
+          ),
+          leagueName: String(row.league ?? row.league_name ?? row.tournament ?? 'Unknown League'),
+          venueName: String(row.venue ?? row.stadium ?? row.location ?? 'TBD'),
+          round: String(row.round ?? row.stage ?? ''),
+        };
+      })
+      .filter((item): item is GenericFixture => item !== null);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return [];
 }
 
 Deno.serve(async (req: Request) => {
@@ -147,17 +229,24 @@ Deno.serve(async (req: Request) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const isRapidApi = provider !== 'apisports';
-    const endpoint = isRapidApi
-      ? `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}&timezone=UTC`
-      : `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`;
-    const headers: Record<string, string> = isRapidApi
+    const isApiSports = provider === 'apisports';
+    const isFreeFootballData = provider === 'free-football-api-data';
+
+    const endpoint = isApiSports
+      ? `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`
+      : isFreeFootballData
+      ? `https://free-football-api-data.p.rapidapi.com/football-events?date=${today}`
+      : `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}&timezone=UTC`;
+
+    const headers: Record<string, string> = isApiSports
       ? {
-          'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+          'x-apisports-key': apiKey,
         }
       : {
-          'x-apisports-key': apiKey,
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': isFreeFootballData
+            ? 'free-football-api-data.p.rapidapi.com'
+            : 'api-football-v1.p.rapidapi.com',
         };
 
     const response = await fetch(endpoint, { headers });
@@ -169,14 +258,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const data: APIFootballResponse = await response.json();
+    const data = await response.json();
+    const fixtures = extractFixtures(data);
 
-    if (!data.response || data.response.length === 0) {
+    if (fixtures.length === 0) {
       return new Response(
         JSON.stringify({
           matches: [],
           source: 'api',
-          message: 'No matches available for today',
+          message: 'No match events available for today',
         }),
         {
           headers: {
@@ -187,26 +277,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const matches = data.response.slice(0, 20).map((fixture) => {
-      const homeTeam = fixture.teams.home.name;
-      const awayTeam = fixture.teams.away.name;
-      const colors = teamColors[homeTeam] || { home: '#6B7280', away: '#9CA3AF' };
+    const matches = fixtures.map((fixture) => {
+      const colors = teamColors[fixture.homeTeam] || { home: '#6B7280', away: '#9CA3AF' };
 
       return {
-        id: `api-${fixture.fixture.id}`,
-        homeTeam,
-        awayTeam,
-        homeScore: fixture.goals.home || 0,
-        awayScore: fixture.goals.away || 0,
-        status: mapFixtureStatus(fixture.fixture.status.short),
-        startTime: fixture.fixture.date,
-        league: fixture.league.name,
-        venue: fixture.fixture.venue.name || 'TBD',
+        id: `api-${fixture.fixtureId}`,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        homeScore: fixture.homeGoals ?? 0,
+        awayScore: fixture.awayGoals ?? 0,
+        status: mapFixtureStatus(fixture.statusShort),
+        startTime: fixture.date,
+        league: fixture.leagueName,
+        venue: fixture.venueName || 'TBD',
         homeTeamColor: colors.home,
         awayTeamColor: colors.away,
-        homeAbbr: getTeamAbbreviation(homeTeam),
-        awayAbbr: getTeamAbbreviation(awayTeam),
-        matchday: parseInt(fixture.league.round.match(/\d+/)?.[0] || '1'),
+        homeAbbr: getTeamAbbreviation(fixture.homeTeam),
+        awayAbbr: getTeamAbbreviation(fixture.awayTeam),
+        matchday: parseInt(fixture.round?.match(/\d+/)?.[0] || '1'),
         isFavorite: false,
         stats: {
           possession: { home: 50, away: 50 },
@@ -224,7 +312,7 @@ Deno.serve(async (req: Request) => {
         matches,
         source: 'api',
         apiInfo: {
-          provider: 'API-Football',
+          provider: isFreeFootballData ? 'Free-Football-API-Data' : 'API-Football',
           matchCount: matches.length,
           timestamp: new Date().toISOString(),
         },
