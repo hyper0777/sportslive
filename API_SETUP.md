@@ -48,6 +48,35 @@ The API provides:
 - Team information
 - Venue details
 - League information
+- Optional Free Football API Data resource fetches for:
+  - news (`resource=news`)
+  - highlights (`resource=highlights`)
+  - live events (`resource=live-events`)
+  - match statistics (`resource=statistics&eventId=...`)
+  - players (`resource=players&teamId=...`)
+  - lineups (`resource=lineups&eventId=...`)
+  - team statistics (`resource=team-statistics&teamId=...&leagueId=...`)
+  - competitions (`resource=competitions`)
+  - leagues (`resource=leagues`)
+
+## Fetching All Free Football Resources
+
+When `FOOTBALL_API_PROVIDER=free-football-api-data`, call the same edge function with query params:
+
+```bash
+GET /functions/v1/live-scores?resource=live-scores&date=2026-04-09
+GET /functions/v1/live-scores?resource=news&date=2026-04-09
+GET /functions/v1/live-scores?resource=highlights&date=2026-04-09
+GET /functions/v1/live-scores?resource=live-events&date=2026-04-09
+GET /functions/v1/live-scores?resource=statistics&eventId=12345
+GET /functions/v1/live-scores?resource=players&teamId=33&season=2026
+GET /functions/v1/live-scores?resource=lineups&eventId=12345
+GET /functions/v1/live-scores?resource=team-statistics&teamId=33&leagueId=39&season=2026
+GET /functions/v1/live-scores?resource=competitions&season=2026
+GET /functions/v1/live-scores?resource=leagues&season=2026
+```
+
+For non-score resources, the edge function returns raw provider payload under `data`.
 
 ## Rate Limits
 

@@ -7,6 +7,17 @@ const corsHeaders = {
 };
 
 type MatchStatus = 'live' | 'finished' | 'scheduled' | 'halftime';
+type FootballResource =
+  | 'live-scores'
+  | 'live-events'
+  | 'news'
+  | 'highlights'
+  | 'statistics'
+  | 'players'
+  | 'lineups'
+  | 'team-statistics'
+  | 'competitions'
+  | 'leagues';
 
 type GenericFixture = {
   fixtureId: number;
@@ -197,6 +208,85 @@ function extractFixtures(payload: unknown): GenericFixture[] {
   return [];
 }
 
+function parseResource(resource: string | null): FootballResource {
+  const normalized = (resource || 'live-scores').toLowerCase();
+  const allowed: FootballResource[] = [
+    'live-scores',
+    'live-events',
+    'news',
+    'highlights',
+    'statistics',
+    'players',
+    'lineups',
+    'team-statistics',
+    'competitions',
+    'leagues',
+  ];
+
+  return allowed.includes(normalized as FootballResource)
+    ? (normalized as FootballResource)
+    : 'live-scores';
+}
+
+function buildFreeFootballEndpoint(
+  resource: FootballResource,
+  searchParams: URLSearchParams,
+  today: string,
+): string {
+  const date = searchParams.get('date') || today;
+  const eventId = searchParams.get('eventId');
+  const teamId = searchParams.get('teamId');
+  const playerId = searchParams.get('playerId');
+  const leagueId = searchParams.get('leagueId');
+  const competitionId = searchParams.get('competitionId');
+  const season = searchParams.get('season') || new Date().getUTCFullYear().toString();
+
+  const base = 'https://free-football-api-data.p.rapidapi.com';
+
+  const withQuery = (path: string, query: Record<string, string | null | undefined>) => {
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value && value.trim() !== '') {
+        qs.set(key, value);
+      }
+    }
+    const suffix = qs.toString();
+    return `${base}${path}${suffix ? `?${suffix}` : ''}`;
+  };
+
+  switch (resource) {
+    case 'live-events':
+    case 'live-scores':
+      return withQuery('/football-events', { date });
+    case 'news':
+      return withQuery('/football-news', { date, league_id: leagueId, team_id: teamId });
+    case 'highlights':
+      return withQuery('/football-highlights', { date, event_id: eventId, team_id: teamId });
+    case 'statistics':
+      return withQuery('/football-event-statistics', { event_id: eventId });
+    case 'players':
+      return withQuery('/football-players', { team_id: teamId, league_id: leagueId, season, player_id: playerId });
+    case 'lineups':
+      return withQuery('/football-lineups', { event_id: eventId });
+    case 'team-statistics':
+      return withQuery('/football-team-statistics', {
+        team_id: teamId,
+        league_id: leagueId,
+        season,
+      });
+    case 'competitions':
+      return withQuery('/football-competitions', {
+        season,
+        country: searchParams.get('country'),
+        competition_id: competitionId,
+      });
+    case 'leagues':
+      return withQuery('/football-leagues', { season, country: searchParams.get('country') });
+    default:
+      return withQuery('/football-events', { date });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -206,6 +296,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const resource = parseResource(url.searchParams.get('resource'));
+    const passthroughParams = new URLSearchParams(url.searchParams);
+    passthroughParams.delete('resource');
+
     const apiKey = Deno.env.get('FOOTBALL_API_KEY');
     const provider = (Deno.env.get('FOOTBALL_API_PROVIDER') || 'rapidapi').toLowerCase();
 
@@ -235,7 +330,7 @@ Deno.serve(async (req: Request) => {
     const endpoint = isApiSports
       ? `https://v3.football.api-sports.io/fixtures?date=${today}&timezone=UTC`
       : isFreeFootballData
-      ? `https://free-football-api-data.p.rapidapi.com/football-events?date=${today}`
+      ? buildFreeFootballEndpoint(resource, passthroughParams, today)
       : `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${today}&timezone=UTC`;
 
     const headers: Record<string, string> = isApiSports
@@ -260,6 +355,24 @@ Deno.serve(async (req: Request) => {
 
     const data = await response.json();
     const fixtures = extractFixtures(data);
+
+    if (isFreeFootballData && resource !== 'live-scores' && resource !== 'live-events') {
+      return new Response(
+        JSON.stringify({
+          resource,
+          source: 'api',
+          provider: 'Free-Football-API-Data',
+          timestamp: new Date().toISOString(),
+          data,
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    }
 
     if (fixtures.length === 0) {
       return new Response(
