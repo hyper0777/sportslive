@@ -4,7 +4,7 @@ Your sports platform is configured to fetch live match data from API-Football an
 
 ## Getting Your API Key
 
-1. Go to [RapidAPI API-Football](https://rapidapi.com/api-sports/api/api-football)
+1. Go to [RapidAPI AllSportsAPI](https://rapidapi.com/tipsters/api/allsportsapi2)
 2. Click "Subscribe to Test" or "Pricing"
 3. Choose a plan:
    - **Free Plan**: 100 requests/day (perfect for testing)
@@ -34,7 +34,7 @@ If you prefer API-Football on RapidAPI, set `FOOTBALL_API_PROVIDER=rapidapi`.
 
 ## How It Works
 
-1. **Edge Function**: The `live-scores` function fetches data from API-Football
+1. **Edge Function**: The `live-scores` function fetches data from AllSportsAPI
 2. **Frontend**: The app calls the Edge Function every 30 seconds to get fresh data
 3. **Fallback**: If the API is unavailable, it uses simulated data
 4. **Data Indicator**: The app shows which data source is being used (API, Simulated, or Edge Function)

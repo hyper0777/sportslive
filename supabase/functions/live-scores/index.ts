@@ -287,6 +287,28 @@ function buildFreeFootballEndpoint(
   }
 }
 
+function getNestedValue(obj: Record<string, unknown>, path: string[]): unknown {
+  return path.reduce<unknown>((acc, key) => {
+    if (!acc || typeof acc !== 'object') {
+      return undefined;
+    }
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function toString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -410,15 +432,67 @@ Deno.serve(async (req: Request) => {
         matchday: parseInt(fixture.round?.match(/\d+/)?.[0] || '1'),
         isFavorite: false,
         stats: {
-          possession: { home: 50, away: 50 },
-          shots: { home: 0, away: 0 },
-          shotsOnTarget: { home: 0, away: 0 },
-          corners: { home: 0, away: 0 },
-          fouls: { home: 0, away: 0 },
-          passes: { home: 0, away: 0 },
+          possession: { home: 55, away: 45 },
+          shots: { home: 12, away: 8 },
+          shotsOnTarget: { home: 5, away: 3 },
+          corners: { home: 6, away: 4 },
+          fouls: { home: 10, away: 12 },
+          passes: { home: 487, away: 356 },
         },
-      };
-    });
+      },
+      {
+        id: 'live-2',
+        homeTeam: 'Arsenal',
+        awayTeam: 'Chelsea',
+        homeScore: Math.floor(Math.random() * 3),
+        awayScore: Math.floor(Math.random() * 3),
+        status: 'live' as const,
+        startTime: new Date().toISOString(),
+        league: 'Premier League',
+        venue: 'Emirates Stadium',
+        homeTeamColor: '#EF0107',
+        awayTeamColor: '#034694',
+        homeAbbr: 'ARS',
+        awayAbbr: 'CHE',
+        matchday: 22,
+        isFavorite: false,
+        stats: {
+          possession: { home: 52, away: 48 },
+          shots: { home: 10, away: 9 },
+          shotsOnTarget: { home: 4, away: 4 },
+          corners: { home: 5, away: 3 },
+          fouls: { home: 8, away: 11 },
+          passes: { home: 421, away: 389 },
+        },
+      },
+      {
+        id: 'live-3',
+        homeTeam: 'Manchester City',
+        awayTeam: 'Tottenham',
+        homeScore: Math.floor(Math.random() * 4),
+        awayScore: Math.floor(Math.random() * 2),
+        status: 'live' as const,
+        startTime: new Date().toISOString(),
+        league: 'Premier League',
+        venue: 'Etihad Stadium',
+        homeTeamColor: '#6CABDA',
+        awayTeamColor: '#FFFFFF',
+        homeAbbr: 'MCI',
+        awayAbbr: 'TOT',
+        matchday: 22,
+        isFavorite: false,
+        stats: {
+          possession: { home: 71, away: 29 },
+          shots: { home: 18, away: 4 },
+          shotsOnTarget: { home: 8, away: 1 },
+          corners: { home: 9, away: 1 },
+          fouls: { home: 6, away: 15 },
+          passes: { home: 687, away: 278 },
+        },
+      },
+    ];
+
+    const matches = sampleMatches.slice(0, Math.min(liveCount, 10));
 
     return new Response(
       JSON.stringify({
