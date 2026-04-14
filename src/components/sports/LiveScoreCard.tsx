@@ -149,6 +149,14 @@ export default function LiveScoreCard({ match, onFavoriteToggle, onCardClick }: 
             </div>
           </div>
         )}
+
+        {match.prediction && (
+          <div className="mt-3 rounded-lg bg-orange-500/10 border border-orange-500/20 p-2">
+            <p className="text-[11px] text-orange-300 font-semibold">AI Pick: {match.prediction.recommendation.toUpperCase()} ({match.prediction.confidence})</p>
+            <p className="text-[11px] text-gray-300">Model: H {match.prediction.homeWin}% · D {match.prediction.draw}% · A {match.prediction.awayWin}%</p>
+          </div>
+        )}
+
       </div>
 
       {/* Footer - Click to expand */}
