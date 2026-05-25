@@ -1,39 +1,29 @@
 import { liveMatches } from '@/data/sportsData';
 import type { Match } from '@/data/sportsData';
-import { getSupabaseClientConfig } from '@/lib/supabaseConfig';
 
-interface EdgeFunctionResponse {
+interface NetlifyFunctionResponse {
   matches: Match[];
   source: 'api' | 'simulated' | 'error';
-  apiInfo?: {
-    provider: string;
-    matchCount: number;
-    timestamp: string;
-  };
+  provider?: string;
+  timestamp?: string;
   message?: string;
   error?: string;
 }
 
 export async function fetchLiveScores() {
   try {
-    const { supabaseUrl, supabaseAnonKey } = getSupabaseClientConfig();
-
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/live-scores`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await fetch('/.netlify/functions/live-scores', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Edge function failed: ${response.status}`);
+      throw new Error(`Function failed: ${response.status}`);
     }
 
-    const data: EdgeFunctionResponse = await response.json();
+    const data: NetlifyFunctionResponse = await response.json();
 
     return {
       matches: data.matches || [],

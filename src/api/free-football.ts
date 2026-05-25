@@ -33,13 +33,6 @@ interface FootballResourceResponse<TData = unknown> {
 export async function fetchFootballResource<TData = unknown>(
   options: FetchFootballResourceOptions,
 ): Promise<FootballResourceResponse<TData>> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !anonKey) {
-    throw new Error('Supabase configuration missing');
-  }
-
   const search = new URLSearchParams({ resource: options.resource });
 
   if (options.date) search.set('date', options.date);
@@ -52,11 +45,10 @@ export async function fetchFootballResource<TData = unknown>(
   if (options.country) search.set('country', options.country);
 
   const response = await fetch(
-    `${supabaseUrl}/functions/v1/live-scores?${search.toString()}`,
+    `/.netlify/functions/live-scores?${search.toString()}`,
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${anonKey}`,
         'Content-Type': 'application/json',
       },
     },
@@ -64,7 +56,7 @@ export async function fetchFootballResource<TData = unknown>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Free Football request failed: ${response.status}. ${text.slice(0, 200)}`);
+    throw new Error(`Netlify function request failed: ${response.status}. ${text.slice(0, 200)}`);
   }
 
   return response.json() as Promise<FootballResourceResponse<TData>>;

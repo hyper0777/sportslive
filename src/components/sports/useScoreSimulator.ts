@@ -26,33 +26,23 @@ export function useScoreSimulator(initialMatches: Match[]) {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const apiUrl = '/.netlify/functions/live-scores';
 
-        if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error('Supabase configuration missing - check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY');
-        }
-
-        const apiUrl = `${supabaseUrl}/functions/v1/live-scores`;
-
-        console.log('Fetching from Edge Function:', apiUrl);
+        console.log('Fetching from Netlify Function:', apiUrl);
 
         let response;
         try {
           response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
               'Content-Type': 'application/json',
             },
           });
-          console.log('Edge Function response status:', response.status);
+          console.log('Netlify Function response status:', response.status);
         } catch (fetchErr) {
-          console.error('Network error calling Edge Function:', fetchErr);
+          console.error('Network error calling Netlify Function:', fetchErr);
           throw new Error(
-            `Edge Function not reachable at ${apiUrl}. ` +
-            `This likely means: 1) Edge Function not deployed, 2) Wrong Supabase URL, or 3) Network/CORS issue. ` +
-            `Deploy with: supabase functions deploy live-scores`
+            `Netlify Function not reachable. Make sure it is deployed and FOOTBALL_API_KEY is set in Netlify environment variables.`
           );
         }
 
@@ -116,14 +106,12 @@ export function useScoreSimulator(initialMatches: Match[]) {
           let errorMsg = 'Using simulated data';
           if (err instanceof Error) {
             const message = err.message;
-            if (message.includes('configuration missing')) {
-              errorMsg = 'Supabase not configured - Check environment variables VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY';
-            } else if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
-              errorMsg = 'Edge Function not deployed - Run: supabase functions deploy live-scores';
+            if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
+              errorMsg = 'Netlify Function not deployed - ensure it is deployed in your project';
             } else if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
-              errorMsg = 'API key not set in Edge Function - Run: supabase secrets set FOOTBALL_API_KEY=your-api-key FOOTBALL_API_PROVIDER=apisports';
+              errorMsg = 'API key not configured - set FOOTBALL_API_KEY in Netlify environment variables';
             } else if (message.includes('invalid JSON')) {
-              errorMsg = 'Edge Function error - verify it is deployed and configured correctly';
+              errorMsg = 'Function error - verify configuration and FOOTBALL_API_KEY';
             } else if (message.includes('No matches available')) {
               errorMsg = 'No matches today from API (showing simulated data)';
             } else {

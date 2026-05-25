@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL?: string;
-  readonly VITE_SUPABASE_ANON_KEY?: string;
+  // Sensitive API keys are managed in Netlify environment variables
+  // No frontend env vars needed
 }
 
 interface ImportMeta {
