@@ -34,7 +34,7 @@ export async function fetchFootballResource<TData = unknown>(
   options: FetchFootballResourceOptions,
 ): Promise<FootballResourceResponse<TData>> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !anonKey) {
     throw new Error('Supabase configuration missing');
@@ -69,4 +69,3 @@ export async function fetchFootballResource<TData = unknown>(
 
   return response.json() as Promise<FootballResourceResponse<TData>>;
 }
-

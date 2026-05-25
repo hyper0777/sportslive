@@ -27,10 +27,10 @@ export function useScoreSimulator(initialMatches: Match[]) {
 
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
         if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error('Supabase configuration missing - check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+          throw new Error('Supabase configuration missing - check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY');
         }
 
         const apiUrl = `${supabaseUrl}/functions/v1/live-scores`;
@@ -121,7 +121,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
             } else if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
               errorMsg = 'Edge Function not deployed - Run: supabase functions deploy live-scores';
             } else if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
-              errorMsg = 'API key not set in Edge Function - Run: supabase secrets set FOOTBALL_API_KEY=your_key FOOTBALL_API_PROVIDER=free-football-api-data';
+              errorMsg = 'API key not set in Edge Function - Run: supabase secrets set FOOTBALL_API_KEY=your-api-key FOOTBALL_API_PROVIDER=apisports';
             } else if (message.includes('invalid JSON')) {
               errorMsg = 'Edge Function error - verify it is deployed and configured correctly';
             } else if (message.includes('No matches available')) {
