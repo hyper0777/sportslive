@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Match } from '@/data/sportsData';
-import { fetchFootballHighlights } from '@/api/football-highlights';
+import { getTodaysMatches } from '@/api/highlightly-matches';
 
 interface ScoreSimulatorState {
   matches: Match[];
@@ -26,37 +26,17 @@ export function useScoreSimulator(initialMatches: Match[]) {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
-        const today = new Date().toISOString().split('T')[0];
+        console.log('Fetching matches from Highlightly API');
 
-        console.log('Fetching matches from Football Highlights API for:', today);
+        const data = await getTodaysMatches();
 
-        const data = await fetchFootballHighlights({
-          date: today,
-          limit: 100,
-          offset: 0,
-          timezone: 'Etc/UTC',
-        });
-
-        console.log('Football Highlights API response received:', data);
+        console.log('Highlightly API response received:', data);
 
         if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
           if (isMounted) {
-            // Transform highlights API response to Match format
-            const transformedMatches = data.matches.map((match: any) => ({
-              id: match.id || `match-${match.homeTeamId}-${match.awayTeamId}`,
-              homeTeam: match.homeTeamName || match.home_team_name || 'Home Team',
-              awayTeam: match.awayTeamName || match.away_team_name || 'Away Team',
-              homeScore: match.homeGoals ?? match.home_goals ?? 0,
-              awayScore: match.awayGoals ?? match.away_goals ?? 0,
-              status: mapHighlightsStatus(match.statusShort || match.status?.short || 'NS'),
-              league: match.leagueName || match.league_name || 'Unknown League',
-              startTime: match.date || match.fixture_date || new Date().toISOString(),
-              venue: match.venueName || match.venue_name,
-            }));
-
             setState((prev) => ({
               ...prev,
-              matches: transformedMatches,
+              matches: data.matches,
               source: 'api',
               loading: false,
               error: null,
@@ -64,7 +44,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
             }));
           }
         } else {
-          throw new Error(data?.message || 'No matches available from API');
+          throw new Error('No matches available from API');
         }
       } catch (err) {
         // Fallback to simulated data
@@ -88,11 +68,11 @@ export function useScoreSimulator(initialMatches: Match[]) {
           if (err instanceof Error) {
             const message = err.message;
             if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
-              errorMsg = 'Football Highlights API not reachable - verify FOOTBALL_HIGHLIGHTS_API_KEY in Netlify';
-            } else if (message.includes('not configured') || message.includes('FOOTBALL_HIGHLIGHTS_API_KEY')) {
-              errorMsg = 'API key not configured - set FOOTBALL_HIGHLIGHTS_API_KEY in Netlify environment variables';
+              errorMsg = 'Highlightly API not reachable - verify HIGHLIGHTLY_API_KEY in Netlify';
+            } else if (message.includes('not configured') || message.includes('HIGHLIGHTLY_API_KEY')) {
+              errorMsg = 'API key not configured - set HIGHLIGHTLY_API_KEY in Netlify environment variables';
             } else if (message.includes('invalid JSON')) {
-              errorMsg = 'API error - verify FOOTBALL_HIGHLIGHTS_API_KEY is valid';
+              errorMsg = 'API error - verify HIGHLIGHTLY_API_KEY is valid';
             } else if (message.includes('No matches available')) {
               errorMsg = 'No matches found for today (showing simulated data)';
             } else {
@@ -127,17 +107,4 @@ export function useScoreSimulator(initialMatches: Match[]) {
   }, [initialMatches]);
 
   return state;
-}
-
-function mapHighlightsStatus(status: string): 'live' | 'finished' | 'scheduled' | 'halftime' {
-  const normalized = status.toUpperCase();
-  const statusMap: Record<string, 'live' | 'finished' | 'scheduled' | 'halftime'> = {
-    NS: 'scheduled',
-    TBD: 'scheduled',
-    '1H': 'live',
-    '2H': 'live',
-    HT: 'halftime',
-    FT: 'finished',
-  };
-  return statusMap[normalized] || 'scheduled';
 }
