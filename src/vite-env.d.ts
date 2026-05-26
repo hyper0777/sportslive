@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // Sensitive API keys are managed in Netlify environment variables
-  // No frontend env vars needed
+  // All sensitive API keys are managed in Netlify environment variables
+  // Frontend has no direct access to API keys
 }
 
 interface ImportMeta {

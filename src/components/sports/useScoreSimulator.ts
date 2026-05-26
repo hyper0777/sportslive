@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Match } from '@/data/sportsData';
-import { getSupabaseClientConfig } from '@/lib/supabaseConfig';
+import { fetchFootballHighlights } from '@/api/football-highlights';
 
 interface ScoreSimulatorState {
   matches: Match[];
@@ -26,64 +26,45 @@ export function useScoreSimulator(initialMatches: Match[]) {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
-        const apiUrl = '/.netlify/functions/live-scores';
+        const today = new Date().toISOString().split('T')[0];
 
-        console.log('Fetching from Netlify Function:', apiUrl);
+        console.log('Fetching matches from Football Highlights API for:', today);
 
-        let response;
-        try {
-          response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          console.log('Netlify Function response status:', response.status);
-        } catch (fetchErr) {
-          console.error('Network error calling Netlify Function:', fetchErr);
-          throw new Error(
-            `Netlify Function not reachable. Make sure it is deployed and FOOTBALL_API_KEY is set in Netlify environment variables.`
-          );
-        }
+        const data = await fetchFootballHighlights({
+          date: today,
+          limit: 100,
+          offset: 0,
+          timezone: 'Etc/UTC',
+        });
 
-        // Always read response as text first to diagnose issues
-        let responseText: string;
-        try {
-          responseText = await response.text();
-        } catch (textErr) {
-          throw new Error('Failed to read Edge Function response');
-        }
+        console.log('Football Highlights API response received:', data);
 
-        // Try to parse as JSON
-        let data: any;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseErr) {
-          // Not JSON, return error with preview of what we got
-          throw new Error(
-            `Edge Function returned invalid JSON (${response.status}). ` +
-            `Response: "${responseText.slice(0, 100)}...". ` +
-            `This usually means the function is not deployed or has a configuration error.`
-          );
-        }
+        if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
+          if (isMounted) {
+            // Transform highlights API response to Match format
+            const transformedMatches = data.matches.map((match: any) => ({
+              id: match.id || `match-${match.homeTeamId}-${match.awayTeamId}`,
+              homeTeam: match.homeTeamName || match.home_team_name || 'Home Team',
+              awayTeam: match.awayTeamName || match.away_team_name || 'Away Team',
+              homeScore: match.homeGoals ?? match.home_goals ?? 0,
+              awayScore: match.awayGoals ?? match.away_goals ?? 0,
+              status: mapHighlightsStatus(match.statusShort || match.status?.short || 'NS'),
+              league: match.leagueName || match.league_name || 'Unknown League',
+              startTime: match.date || match.fixture_date || new Date().toISOString(),
+              venue: match.venueName || match.venue_name,
+            }));
 
-        if (response.ok && isMounted) {
-          if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
             setState((prev) => ({
               ...prev,
-              matches: data.matches,
-              source: data.source || 'api',
+              matches: transformedMatches,
+              source: 'api',
               loading: false,
               error: null,
               lastUpdated: new Date(),
             }));
-          } else {
-            throw new Error(data?.message || 'No matches available from API');
           }
         } else {
-          // Error response
-          const errorMsg = data?.message || data?.error || `API returned ${response.status}`;
-          throw new Error(errorMsg);
+          throw new Error(data?.message || 'No matches available from API');
         }
       } catch (err) {
         // Fallback to simulated data
@@ -107,13 +88,13 @@ export function useScoreSimulator(initialMatches: Match[]) {
           if (err instanceof Error) {
             const message = err.message;
             if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
-              errorMsg = 'Netlify Function not deployed - ensure it is deployed in your project';
-            } else if (message.includes('not configured') || message.includes('FOOTBALL_API_KEY')) {
-              errorMsg = 'API key not configured - set FOOTBALL_API_KEY in Netlify environment variables';
+              errorMsg = 'Football Highlights API not reachable - verify FOOTBALL_HIGHLIGHTS_API_KEY in Netlify';
+            } else if (message.includes('not configured') || message.includes('FOOTBALL_HIGHLIGHTS_API_KEY')) {
+              errorMsg = 'API key not configured - set FOOTBALL_HIGHLIGHTS_API_KEY in Netlify environment variables';
             } else if (message.includes('invalid JSON')) {
-              errorMsg = 'Function error - verify configuration and FOOTBALL_API_KEY';
+              errorMsg = 'API error - verify FOOTBALL_HIGHLIGHTS_API_KEY is valid';
             } else if (message.includes('No matches available')) {
-              errorMsg = 'No matches today from API (showing simulated data)';
+              errorMsg = 'No matches found for today (showing simulated data)';
             } else {
               errorMsg = message.length > 150 ? `${message.slice(0, 150)}...` : message;
             }
@@ -146,4 +127,17 @@ export function useScoreSimulator(initialMatches: Match[]) {
   }, [initialMatches]);
 
   return state;
+}
+
+function mapHighlightsStatus(status: string): 'live' | 'finished' | 'scheduled' | 'halftime' {
+  const normalized = status.toUpperCase();
+  const statusMap: Record<string, 'live' | 'finished' | 'scheduled' | 'halftime'> = {
+    NS: 'scheduled',
+    TBD: 'scheduled',
+    '1H': 'live',
+    '2H': 'live',
+    HT: 'halftime',
+    FT: 'finished',
+  };
+  return statusMap[normalized] || 'scheduled';
 }
