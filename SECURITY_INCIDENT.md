@@ -3,7 +3,7 @@
 ## Status: MITIGATED
 
 An exposed RapidAPI key was identified in code:
-- **API Key:** `51b6753525msh4825bb309875645p1a0c72jsnea34d242fa68`
+- **API Key:** ``
 - **API Host:** `allsportsapi2.p.rapidapi.com`
 - **Risk Level:** HIGH
 
@@ -11,7 +11,7 @@ An exposed RapidAPI key was identified in code:
 
 1. **Key Revocation** - The exposed key should be immediately revoked:
    - Go to https://rapidapi.com/dashboard/apps
-   - Revoke the key: `51b6753525msh4825bb309875645p1a0c72jsnea34d242fa68`
+   - Revoke the key: ``
    - Generate a new key
 
 2. **Code Secure** - All API calls now route through Netlify Functions:
@@ -30,7 +30,7 @@ An exposed RapidAPI key was identified in code:
 ```
 1. Visit https://rapidapi.com/dashboard/apps
 2. Find your subscription to "All Sports API 2"
-3. Locate API Key: 51b6753525msh4825bb309875645p1a0c72jsnea34d242fa68
+3. Locate API Key: 
 4. Click "Regenerate" or "Delete"
 5. Note the new key
 ```
