@@ -1,0 +1,11 @@
+Football Live Scores API
+FOOTBALL_API_KEY=
+FOOTBALL_API_PROVIDER=apisports|rapidapi|free-football-api-data
+
+Football Highlights API (RapidAPI)
+ FOOTBALL_HIGHLIGHTS_API_KEY=
+ FOOTBALL_HIGHLIGHTS_API_HOST=football-highlights-api.p.rapidapi.com
+
+ Sports Data API (RapidAPI) - Country flags, league data
+ ALLSPORTS_API_KEY=
+ ALLSPORTS_API_HOST=allsportsapi2.p.rapidapi.com
