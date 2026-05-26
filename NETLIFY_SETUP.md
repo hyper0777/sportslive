@@ -39,6 +39,12 @@ ALLSPORTS_API_KEY=your-rapidapi-key
 ALLSPORTS_API_HOST=allsportsapi2.p.rapidapi.com
 ```
 
+#### Football Highlights API (Optional)
+```
+FOOTBALL_HIGHLIGHTS_API_KEY=your-rapidapi-key
+FOOTBALL_HIGHLIGHTS_API_HOST=football-highlights-api.p.rapidapi.com
+```
+
 ### 3. Redeploy
 
 Once environment variables are set, trigger a new deploy:
@@ -73,6 +79,8 @@ echo "FOOTBALL_API_KEY=your-test-key" > .env.local
 echo "FOOTBALL_API_PROVIDER=apisports" >> .env.local
 echo "ALLSPORTS_API_KEY=your-test-key" >> .env.local
 echo "ALLSPORTS_API_HOST=allsportsapi2.p.rapidapi.com" >> .env.local
+echo "FOOTBALL_HIGHLIGHTS_API_KEY=your-test-key" >> .env.local
+echo "FOOTBALL_HIGHLIGHTS_API_HOST=football-highlights-api.p.rapidapi.com" >> .env.local
 
 # Run development server with Netlify Functions
 netlify dev
@@ -83,16 +91,35 @@ The dev server will simulate the Netlify environment locally.
 ### Usage in Code
 
 ```typescript
-// Secure - API key never exposed to frontend
+// Sports Data API
 import { getCountryFlag, fetchSportsData } from '@/api/sports-data';
-
-// Fetch country flag
 const flagData = await getCountryFlag('AU');
 
-// Or fetch custom endpoint
-const data = await fetchSportsData({
-  endpoint: 'flag',
-  country: 'AU'
+// Football Highlights API
+import {
+  getMatchesByDate,
+  getMatchesByLeague,
+  getTeamFixtures
+} from '@/api/football-highlights';
+
+// Fetch matches by date
+const todayMatches = await getMatchesByDate('2024-01-15');
+
+// Fetch league matches
+const premierLeague = await getMatchesByLeague('97798', '2023');
+
+// Fetch team fixtures
+const teamMatches = await getTeamFixtures('5700782', '1907875');
+
+// Or use direct function with custom params
+import { fetchFootballHighlights } from '@/api/football-highlights';
+const matches = await fetchFootballHighlights({
+  homeTeamName: 'Skövde AIK',
+  awayTeamName: 'Västerås SK FK',
+  date: '2023-08-06',
+  leagueName: 'Superettan',
+  countryCode: 'SE',
+  season: '2023'
 });
 ```
 
