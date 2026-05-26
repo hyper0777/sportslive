@@ -22,6 +22,7 @@ In your Netlify site settings:
 1. Go to **Site Settings** → **Build & Deploy** → **Environment**
 2. Add these environment variables:
 
+#### Football Data (Required)
 ```
 FOOTBALL_API_KEY=your-actual-api-key
 FOOTBALL_API_PROVIDER=apisports
@@ -31,6 +32,12 @@ FOOTBALL_API_PROVIDER=apisports
 - `apisports` - API-Football (recommended)
 - `rapidapi` - API-Football via RapidAPI
 - `free-football-api-data` - Free Football API Data via RapidAPI
+
+#### Sports Data / Country Flags (Optional)
+```
+ALLSPORTS_API_KEY=your-rapidapi-key
+ALLSPORTS_API_HOST=allsportsapi2.p.rapidapi.com
+```
 
 ### 3. Redeploy
 
@@ -64,12 +71,30 @@ For local testing with sensitive keys:
 # Create a .env.local file (git-ignored)
 echo "FOOTBALL_API_KEY=your-test-key" > .env.local
 echo "FOOTBALL_API_PROVIDER=apisports" >> .env.local
+echo "ALLSPORTS_API_KEY=your-test-key" >> .env.local
+echo "ALLSPORTS_API_HOST=allsportsapi2.p.rapidapi.com" >> .env.local
 
 # Run development server with Netlify Functions
 netlify dev
 ```
 
 The dev server will simulate the Netlify environment locally.
+
+### Usage in Code
+
+```typescript
+// Secure - API key never exposed to frontend
+import { getCountryFlag, fetchSportsData } from '@/api/sports-data';
+
+// Fetch country flag
+const flagData = await getCountryFlag('AU');
+
+// Or fetch custom endpoint
+const data = await fetchSportsData({
+  endpoint: 'flag',
+  country: 'AU'
+});
+```
 
 ## Security Best Practices
 
