@@ -15,7 +15,7 @@ const handler: Handler = async (event) => {
 
   try {
     const apiKey = process.env.FOOTBALL_HIGHLIGHTS_API_KEY;
-    const apiHost = process.env.FOOTBALL_HIGHLIGHTS_API_HOST || 'api-football-v1.p.rapidapi.com';
+    const apiHost = 'football-highlights-api.p.rapidapi.com';
 
     if (!apiKey) {
       console.error('FOOTBALL_HIGHLIGHTS_API_KEY not configured');
@@ -32,7 +32,7 @@ const handler: Handler = async (event) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const url = `https://${apiHost}/fixtures?date=${today}&limit=10`;
+    const url = `https://${apiHost}/matches?date=${today}`;
 
     console.log('Fetching matches from:', url);
 
@@ -59,17 +59,17 @@ const handler: Handler = async (event) => {
     const data = await response.json();
     console.log('API Response received, processing matches');
 
-    const rawMatches = data.response || [];
-    const matches = rawMatches.map((fixture: any) => ({
-      id: fixture.fixture.id,
-      homeTeam: fixture.teams.home.name,
-      awayTeam: fixture.teams.away.name,
-      homeScore: fixture.goals.home,
-      awayScore: fixture.goals.away,
-      status: fixture.fixture.status.short === 'FT' ? 'finished' : fixture.fixture.status.short === 'LIVE' ? 'live' : 'scheduled',
-      league: fixture.league.name,
-      startTime: fixture.fixture.date,
-      venue: fixture.fixture.venue?.name,
+    const rawMatches = Array.isArray(data) ? data : data.response || data.matches || [];
+    const matches = rawMatches.map((match: any) => ({
+      id: match.matchId || match.id || `${match.homeTeam}-vs-${match.awayTeam}`,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      homeScore: match.homeTeamScore || match.score?.home || 0,
+      awayScore: match.awayTeamScore || match.score?.away || 0,
+      status: match.status || 'scheduled',
+      league: match.league || 'Unknown',
+      startTime: match.startDate || match.date || new Date().toISOString(),
+      venue: match.venue || undefined,
     }));
 
     return {
