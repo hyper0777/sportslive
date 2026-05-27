@@ -144,3 +144,40 @@ export async function getMatchEvents(matchId: string): Promise<MatchEventsRespon
     throw error;
   }
 }
+
+export interface Country {
+  id: string;
+  name: string;
+  code?: string;
+  flag?: string;
+  [key: string]: unknown;
+}
+
+export interface CountriesResponse {
+  countries: Country[];
+  source: 'api' | 'error';
+  timestamp: string;
+  error?: string;
+}
+
+// Fetch countries by name
+export async function getCountries(name?: string): Promise<CountriesResponse> {
+  try {
+    const query = name ? `?name=${encodeURIComponent(name)}` : '';
+    const response = await fetch(`/.netlify/functions/countries${query}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Countries request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching countries:', error);
+    throw error;
+  }
+}
