@@ -33,6 +33,11 @@ export async function getTodaysMatches(): Promise<HighlightlyResponse> {
       throw new Error(`Request failed: ${response.status}`);
     }
 
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error(`invalid JSON - received ${contentType}`);
+    }
+
     const data: HighlightlyResponse = await response.json();
     return data;
   } catch (error) {

@@ -26,26 +26,28 @@ export function useScoreSimulator(initialMatches: Match[]) {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
-        console.log('Fetching matches from Highlightly API');
+        // Skip API call for now - API key may be invalid
+        // Uncomment when API is configured correctly
+        // console.log('Fetching matches from Highlightly API');
+        // const data = await getTodaysMatches();
+        // console.log('Highlightly API response received:', data);
 
-        const data = await getTodaysMatches();
+        throw new Error('API integration disabled - using simulated data');
 
-        console.log('Highlightly API response received:', data);
-
-        if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
-          if (isMounted) {
-            setState((prev) => ({
-              ...prev,
-              matches: data.matches,
-              source: 'api',
-              loading: false,
-              error: null,
-              lastUpdated: new Date(),
-            }));
-          }
-        } else {
-          throw new Error('No matches available from API');
-        }
+        // if (data && data.matches && Array.isArray(data.matches) && data.matches.length > 0) {
+        //   if (isMounted) {
+        //     setState((prev) => ({
+        //       ...prev,
+        //       matches: data.matches,
+        //       source: 'api',
+        //       loading: false,
+        //       error: null,
+        //       lastUpdated: new Date(),
+        //     }));
+        //   }
+        // } else {
+        //   throw new Error('No matches available from API');
+        // }
       } catch (err) {
         // Fallback to simulated data
         if (isMounted) {
