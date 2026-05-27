@@ -10,8 +10,8 @@ export interface HighlightlyMatch {
 
 export interface HighlightlyResponse {
   matches: any[];
-  source: 'api' | 'error';
-  provider: string;
+  source: 'api' | 'error' | 'mock';
+  provider?: string;
   pagination: { totalCount: number };
   timestamp: string;
 }
