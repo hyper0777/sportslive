@@ -105,3 +105,42 @@ export async function getMatchById(matchId: string): Promise<FootballHighlightsR
     throw error;
   }
 }
+
+export interface MatchEvent {
+  id: string;
+  type: 'goal' | 'card' | 'substitution' | 'other';
+  minute: number;
+  player: string;
+  team: string;
+  description: string;
+  [key: string]: unknown;
+}
+
+export interface MatchEventsResponse {
+  events: MatchEvent[];
+  matchId: string;
+  source: 'api' | 'error';
+  timestamp: string;
+  error?: string;
+}
+
+// Fetch events (goals, cards, subs, etc.) for a match
+export async function getMatchEvents(matchId: string): Promise<MatchEventsResponse> {
+  try {
+    const response = await fetch(`/.netlify/functions/match-events?id=${encodeURIComponent(matchId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Match events request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching match events:', error);
+    throw error;
+  }
+}
