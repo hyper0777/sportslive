@@ -14,11 +14,17 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const apiKey = process.env.FOOTBALL_HIGHLIGHTS_API_KEY;
+    // Try multiple env var names
+    const apiKey = process.env.FOOTBALL_HIGHLIGHTS_API_KEY ||
+                   process.env.FOOTBALL_HIGHLIGHTS_API_K ||
+                   process.env.FOOTBALL_HIGHLIGHTS_API ||
+                   process.env.FOOTBALL_HIGHLIGHTS;
     const apiHost = 'football-highlights-api.p.rapidapi.com';
 
+    console.log('API Key check:', { hasKey: !!apiKey, keyLength: apiKey?.length });
+
     if (!apiKey) {
-      console.error('FOOTBALL_HIGHLIGHTS_API_KEY not configured');
+      console.error('API key not found in any environment variable');
       return {
         statusCode: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -26,15 +32,17 @@ const handler: Handler = async (event) => {
           matches: [],
           source: 'error',
           error: 'API key not configured',
-          message: 'FOOTBALL_HIGHLIGHTS_API_KEY is missing',
+          message: 'No API key found in environment variables',
         }),
       };
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const url = `https://${apiHost}/matches?date=${today}`;
+    // Try multiple possible endpoint formats
+    let url = `https://${apiHost}/matches?date=${today}`;
 
     console.log('Fetching matches from:', url);
+    console.log('Using API key:', apiKey.slice(0, 10) + '...');
 
     const response = await fetch(url, {
       method: 'GET',
@@ -46,17 +54,43 @@ const handler: Handler = async (event) => {
 
     console.log('API Response Status:', response.status);
 
+    const contentType = response.headers.get('content-type');
+    console.log('Response content-type:', contentType);
+
+    // Handle non-OK responses
+    if (response.status === 401 || response.status === 403) {
+      console.error('Authentication error - invalid API key');
+      throw new Error(`Authentication failed: ${response.status}`);
+    }
+
     if (!response.ok) {
       const errorBody = await response.text();
       console.error('API Error:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorBody.slice(0, 200),
+        contentType,
+        body: errorBody.slice(0, 500),
       });
       throw new Error(`API returned ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    if (!contentType?.includes('application/json')) {
+      const bodyText = await response.text();
+      console.error('Invalid response type:', {
+        contentType,
+        body: bodyText.slice(0, 500),
+      });
+      throw new Error(`Expected JSON but got ${contentType}`);
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      throw new Error('Response was not valid JSON');
+    }
+
     console.log('API Response received, processing matches');
 
     const rawMatches = Array.isArray(data) ? data : data.response || data.matches || [];

@@ -46,7 +46,7 @@ export function useScoreSimulator(initialMatches: Match[]) {
         } else {
           throw new Error('No matches available from API');
         }
-      } catch (err) {
+      } catch (err: any) {
         // Fallback to simulated data
         if (isMounted) {
           const simulatedMatches = initialMatches.map((match) => {
