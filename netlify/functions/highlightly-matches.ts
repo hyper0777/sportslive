@@ -31,17 +31,17 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const apiKey = process.env.HIGHLIGHTLY_API_KEY;
-    const baseUrl = process.env.HIGHLIGHTLY_BASE_URL || 'https://sports.highlightly.net';
+    const apiKey = process.env.FOOTBALL_HIGHLIGHTS_API_KEY;
+    const apiHost = process.env.FOOTBALL_HIGHLIGHTS_API_HOST || 'football-highlights-api.p.rapidapi.com';
 
     if (!apiKey) {
-      console.error('HIGHLIGHTLY_API_KEY not configured');
+      console.error('FOOTBALL_HIGHLIGHTS_API_KEY not configured');
       return {
         statusCode: 500,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: 'API key not configured',
-          message: 'HIGHLIGHTLY_API_KEY missing in environment variables',
+          message: 'FOOTBALL_HIGHLIGHTS_API_KEY missing in environment variables',
           data: [],
           pagination: { totalCount: 0 },
         }),
@@ -49,14 +49,15 @@ const handler: Handler = async (event) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const url = `${baseUrl}/football/matches?date=${today}&limit=100`;
+    const url = `https://${apiHost}/matches?date=${today}&limit=100`;
 
-    console.log('Fetching from Highlightly API:', url);
+    console.log('Fetching from Football Highlights API:', url);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': apiHost,
         'Content-Type': 'application/json',
       },
     });
@@ -68,19 +69,20 @@ const handler: Handler = async (event) => {
       );
     }
 
-    const data: HighlightlyResponse = await response.json();
+    const responseData: any = await response.json();
+    const rawMatches = responseData.response || responseData.matches || responseData.data || [];
 
     // Transform response to internal format
-    const matches = data.data.map((match) => ({
-      id: `${match.homeTeam.name}-vs-${match.awayTeam.name}-${today}`,
-      homeTeam: match.homeTeam.name,
-      awayTeam: match.awayTeam.name,
-      homeScore: extractScore(match.state.score.current, 'home'),
-      awayScore: extractScore(match.state.score.current, 'away'),
-      status: mapStatus(match.state.description),
-      league: 'Unknown', // Adjust if available in response
-      startTime: new Date().toISOString(),
-      venue: undefined,
+    const matches = rawMatches.map((match: any) => ({
+      id: match.fixture?.id || `${match.homeTeam?.name || 'Home'}-vs-${match.awayTeam?.name || 'Away'}-${today}`,
+      homeTeam: match.homeTeam?.name || match.teams?.home?.name || 'Home Team',
+      awayTeam: match.awayTeam?.name || match.teams?.away?.name || 'Away Team',
+      homeScore: match.goals?.home || match.score?.home || extractScore(match.state?.score?.current || '', 'home'),
+      awayScore: match.goals?.away || match.score?.away || extractScore(match.state?.score?.current || '', 'away'),
+      status: mapStatus(match.state?.description || match.fixture?.status || match.status || ''),
+      league: match.league?.name || match.leagueName || 'Unknown',
+      startTime: match.fixture?.date || match.date || new Date().toISOString(),
+      venue: match.fixture?.venue?.name || match.venue || undefined,
     }));
 
     return {
@@ -92,8 +94,8 @@ const handler: Handler = async (event) => {
       body: JSON.stringify({
         matches,
         source: 'api',
-        provider: 'Highlightly',
-        pagination: data.pagination,
+        provider: 'Football Highlights',
+        pagination: responseData.pagination || { totalCount: matches.length },
         timestamp: new Date().toISOString(),
       }),
     };
