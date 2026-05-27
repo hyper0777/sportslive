@@ -84,3 +84,24 @@ export async function getTeamFixtures(
     ...options,
   });
 }
+
+// Fetch a specific match by ID
+export async function getMatchById(matchId: string): Promise<FootballHighlightsResponse> {
+  try {
+    const response = await fetch('/.netlify/functions/football-highlights-detail', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Match detail request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching match details:', error);
+    throw error;
+  }
+}
