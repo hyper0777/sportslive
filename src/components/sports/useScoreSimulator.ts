@@ -68,11 +68,13 @@ export function useScoreSimulator(initialMatches: Match[]) {
           if (err instanceof Error) {
             const message = err.message;
             if (message.includes('not reachable') || message.includes('Failed to fetch') || message.includes('Network error')) {
-              errorMsg = 'Highlightly API not reachable - verify HIGHLIGHTLY_API_KEY in Netlify';
+              errorMsg = 'Highlightly API not reachable - check HIGHLIGHTLY_API_KEY in Netlify';
             } else if (message.includes('not configured') || message.includes('HIGHLIGHTLY_API_KEY')) {
               errorMsg = 'API key not configured - set HIGHLIGHTLY_API_KEY in Netlify environment variables';
-            } else if (message.includes('invalid JSON')) {
-              errorMsg = 'API error - verify HIGHLIGHTLY_API_KEY is valid';
+            } else if (message.includes('Failed to parse API response') || message.includes('not valid JSON')) {
+              errorMsg = 'API error - verify HIGHLIGHTLY_API_KEY and HIGHLIGHTLY_BASE_URL are correct';
+            } else if (message.includes('API request failed: 401') || message.includes('API request failed: 403')) {
+              errorMsg = 'API authentication failed - check your HIGHLIGHTLY_API_KEY';
             } else if (message.includes('No matches available')) {
               errorMsg = 'No matches found for today (showing simulated data)';
             } else {

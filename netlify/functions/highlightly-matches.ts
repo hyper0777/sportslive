@@ -68,7 +68,15 @@ const handler: Handler = async (event) => {
       );
     }
 
-    const data: HighlightlyResponse = await response.json();
+    let data: HighlightlyResponse;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      const text = await response.text();
+      throw new Error(
+        `Failed to parse API response as JSON. Got: ${text.slice(0, 100)}`
+      );
+    }
 
     // Transform response to internal format
     const matches = data.data.map((match) => ({
