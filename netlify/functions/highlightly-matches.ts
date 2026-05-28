@@ -14,14 +14,13 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    // Try multiple env var names since they seem to have truncation issues
-    const apiKey = process.env.FOOTBALL_HIGHLIGHTS_API_KEY || 
-                   process.env.FOOTBALL_HIGHLIGHTS_API_K ||
-                   process.env.FOOTBALL_HIGHLIGHTS_API ||
-                   process.env.FOOTBALL_HIGHLIGHTS;
+    // Get RapidAPI key for Sport Highlights API
+    const apiKey = process.env.VITE_HIGHLIGHTLY_API_KEY ||
+                   process.env.HIGHLIGHTLY_API_KEY;
 
     if (!apiKey) {
       console.error('API key not found in environment variables');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('API') || k.includes('api')));
       return {
         statusCode: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -29,22 +28,25 @@ const handler: Handler = async (event) => {
           matches: [],
           source: 'error',
           error: 'API key not configured',
-          message: 'No API key found in environment variables',
+          message: 'Set VITE_HIGHLIGHTLY_API_KEY or HIGHLIGHTLY_API_KEY environment variable',
         }),
       };
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const baseUrl = 'https://sports.highlightly.net';
-    const url = `${baseUrl}/football/matches?date=${today}&limit=100`;
+    // Use RapidAPI Sport Highlights API endpoint
+    const baseUrl = 'https://sport-highlights-api.p.rapidapi.com';
+    // Note: RapidAPI might not support 'live' status - try without filter first
+    const url = `${baseUrl}/football/matches?limit=10`;
 
-    console.log('Fetching from Highlightly API:', url);
+    console.log('Fetching from Sport Highlights API:', url);
     console.log('Using API key:', apiKey.slice(0, 10) + '...');
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'x-rapidapi-host': 'sport-highlights-api.p.rapidapi.com',
         'x-rapidapi-key': apiKey,
+        'Content-Type': 'application/json',
       },
     });
 
@@ -92,20 +94,20 @@ const handler: Handler = async (event) => {
     }
     console.log('API Response received');
 
-    // Extract matches from response
-    const data = responseData.data || [];
-    
+    // Extract matches from response (RapidAPI returns array directly)
+    const data = Array.isArray(responseData) ? responseData : responseData.data || [];
+
     // Transform to internal format
     const matches = data.map((match: any) => ({
-      id: `${match.homeTeam.name}-vs-${match.awayTeam.name}-${today}`,
-      homeTeam: match.homeTeam.name,
-      awayTeam: match.awayTeam.name,
-      homeScore: extractScore(match.state.score.current, 'home'),
-      awayScore: extractScore(match.state.score.current, 'away'),
-      status: mapStatus(match.state.description),
+      id: match.id || `${match.homeTeam?.name}-vs-${match.awayTeam?.name}`,
+      homeTeam: match.homeTeam?.name || 'Unknown',
+      awayTeam: match.awayTeam?.name || 'Unknown',
+      homeScore: match.score?.home || 0,
+      awayScore: match.score?.away || 0,
+      status: match.status || 'scheduled',
       league: match.league?.name || 'Football',
       startTime: match.startDate || new Date().toISOString(),
-      venue: match.venue?.name,
+      venue: match.venue?.name || 'TBD',
     }));
 
     console.log(`Processed ${matches.length} matches`);
@@ -170,19 +172,5 @@ const handler: Handler = async (event) => {
   }
 };
 
-function extractScore(scoreString: string, team: 'home' | 'away'): number {
-  if (!scoreString) return 0;
-  const parts = scoreString.split('-');
-  if (team === 'home') return parseInt(parts[0]?.trim() || '0', 10);
-  return parseInt(parts[1]?.trim() || '0', 10);
-}
-
-function mapStatus(description: string): 'live' | 'finished' | 'scheduled' | 'halftime' {
-  const desc = (description || '').toLowerCase();
-  if (desc.includes('live') || desc.includes('first half') || desc.includes('second half')) return 'live';
-  if (desc.includes('halftime') || desc.includes('half time')) return 'halftime';
-  if (desc.includes('finished') || desc.includes('full time') || desc.includes('ended')) return 'finished';
-  return 'scheduled';
-}
 
 export { handler };
