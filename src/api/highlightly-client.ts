@@ -17,7 +17,9 @@ async function apiRequest<T>(
   const url = new URL(`${API_BASE}${endpoint}`);
   if (options.params) {
     Object.entries(options.params).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
     });
   }
 
