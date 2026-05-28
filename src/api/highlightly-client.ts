@@ -33,6 +33,16 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    let errorDetails = '';
+    try {
+      const errorBody = await response.json();
+      errorDetails = JSON.stringify(errorBody);
+    } catch {
+      errorDetails = await response.text();
+    }
+    console.error(
+      `API Error: ${response.status} - URL: ${url.toString()} - Response: ${errorDetails}`,
+    );
     throw new Error(
       `API request failed: ${response.status} ${response.statusText}`,
     );
