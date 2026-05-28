@@ -108,7 +108,7 @@ export default function LiveScoreCard({ match, onFavoriteToggle, onCardClick }: 
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
                 style={{ backgroundColor: match.homeTeamColor }}
               >
-                {match.homeAbbr[0]}
+                {match.homeAbbr?.[0] || match.homeTeam[0]}
               </div>
               <p className="text-white font-semibold text-sm truncate flex-1">{match.homeTeam}</p>
             </div>
@@ -122,7 +122,7 @@ export default function LiveScoreCard({ match, onFavoriteToggle, onCardClick }: 
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
                 style={{ backgroundColor: match.awayTeamColor }}
               >
-                {match.awayAbbr[0]}
+                {match.awayAbbr?.[0] || match.awayTeam[0]}
               </div>
               <p className="text-white font-semibold text-sm truncate flex-1">{match.awayTeam}</p>
             </div>
