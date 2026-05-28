@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AlertCircle, PlayCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,6 +7,7 @@ import {
   newsArticles,
   topPlayers,
 } from '@/data/sportsData';
+import type { Match } from '@/data/sportsData';
 import Header from './sports/Header';
 import HeroSection from './sports/HeroSection';
 import LiveScores from './sports/LiveScores';
@@ -18,15 +19,102 @@ import StatsBar from './sports/StatsBar';
 import QuickLinks from './sports/QuickLinks';
 import Footer from './sports/Footer';
 import BackToTop from './sports/BackToTop';
+import Highlights from './sports/Highlights';
+import TeamsGrid from './sports/TeamsGrid';
+import LeaguesList from './sports/LeaguesList';
 import { useScoreSimulator } from './sports/useScoreSimulator';
 import BettingInsights from './sports/BettingInsights';
+import { football, basketball, americanFootball } from '@/api/highlightly-client';
 
 export default function AppLayout() {
   const [selectedSport, setSelectedSport] = useState('all');
   const [selectedLeague, setSelectedLeague] = useState('all');
+  const [apiMatches, setApiMatches] = useState<Match[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const scoreState = useScoreSimulator(liveMatches);
+  // Try to fetch from API on mount
+  useEffect(() => {
+    async function fetchMatches() {
+      try {
+        setApiLoading(true);
+        setApiError(null);
+        const [footballData, basketballData, nflData] = await Promise.all([
+          football.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
+          basketball.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
+          americanFootball.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
+        ]);
+
+        const matches: Match[] = [
+          ...(footballData.data || []).map((m: any) => ({
+            id: m.id,
+            homeTeam: m.homeTeam?.name || 'Unknown',
+            awayTeam: m.awayTeam?.name || 'Unknown',
+            homeScore: m.score?.home || 0,
+            awayScore: m.score?.away || 0,
+            league: m.league?.name || 'Football',
+            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
+            startTime: m.startDate || new Date().toISOString(),
+            venue: 'TBD',
+            homeTeamColor: '#FF8C42',
+            awayTeamColor: '#1a1a1a',
+            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
+            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
+            matchday: 1,
+          })),
+          ...(basketballData.data || []).map((m: any) => ({
+            id: m.id,
+            homeTeam: m.homeTeam?.name || 'Unknown',
+            awayTeam: m.awayTeam?.name || 'Unknown',
+            homeScore: m.score?.home || 0,
+            awayScore: m.score?.away || 0,
+            league: m.league?.name || 'Basketball',
+            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
+            startTime: m.startDate || new Date().toISOString(),
+            venue: 'TBD',
+            homeTeamColor: '#1E90FF',
+            awayTeamColor: '#FFD700',
+            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
+            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
+            matchday: 1,
+          })),
+          ...(nflData.data || []).map((m: any) => ({
+            id: m.id,
+            homeTeam: m.homeTeam?.name || 'Unknown',
+            awayTeam: m.awayTeam?.name || 'Unknown',
+            homeScore: m.score?.home || 0,
+            awayScore: m.score?.away || 0,
+            league: m.league?.name || 'NFL',
+            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
+            startTime: m.startDate || new Date().toISOString(),
+            venue: 'TBD',
+            homeTeamColor: '#003D7A',
+            awayTeamColor: '#B0B0B0',
+            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
+            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
+            matchday: 1,
+          })),
+        ];
+
+        if (matches.length > 0) {
+          setApiMatches(matches);
+        } else {
+          setApiError('No live matches available from API');
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to fetch matches';
+        setApiError(errorMsg);
+        console.error('API fetch error:', err);
+      } finally {
+        setApiLoading(false);
+      }
+    }
+
+    fetchMatches();
+  }, []);
+
+  const scoreState = useScoreSimulator(apiMatches.length > 0 ? apiMatches : liveMatches);
 
   const sportFilteredMatches = selectedSport === 'all'
     ? scoreState.matches
@@ -65,16 +153,17 @@ export default function AppLayout() {
       <div className="sticky top-16 z-40 bg-gray-900/95 border-b border-gray-800 px-4 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-gray-400">
-            <span className={`inline-block w-2 h-2 rounded-full ${scoreState.source === 'api' ? 'bg-green-500' : scoreState.source === 'edge-function' ? 'bg-blue-500' : 'bg-yellow-500'}`} />
-            <span>Data from: {scoreState.source === 'api' && 'Live API'}{scoreState.source === 'edge-function' && 'Edge Function'}{scoreState.source === 'simulated' && 'Simulated'}</span>
+            <span className={`inline-block w-2 h-2 rounded-full ${apiMatches.length > 0 ? 'bg-green-500' : scoreState.source === 'edge-function' ? 'bg-blue-500' : 'bg-yellow-500'}`} />
+            <span>Data from: {apiMatches.length > 0 && 'Highlightly API'}{apiMatches.length === 0 && scoreState.source === 'edge-function' && 'Edge Function'}{apiMatches.length === 0 && scoreState.source === 'simulated' && 'Simulated'}</span>
             {scoreState.lastUpdated && <span className="text-gray-500">• Updated: {scoreState.lastUpdated.toLocaleTimeString()}</span>}
+            {apiLoading && <span className="text-orange-400 animate-pulse">• Loading API...</span>}
             {scoreState.loading && <span className="text-orange-400 animate-pulse">• Updating...</span>}
           </div>
 
-          {scoreState.error && (
+          {(apiError || scoreState.error) && (
             <div className="flex items-center gap-1 text-yellow-400">
               <AlertCircle className="h-4 w-4" />
-              <span>{scoreState.error}</span>
+              <span>{apiError ? `API: ${apiError}` : scoreState.error}</span>
             </div>
           )}
         </div>
@@ -124,6 +213,22 @@ export default function AppLayout() {
 
         <section className="mb-12">
           <BettingInsights matches={filteredMatches} onOpenMatch={(matchId) => navigate(`/match/${matchId}`)} />
+        </section>
+
+        <Highlights />
+
+        <section className="mb-12">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-4">Top Teams</h2>
+            <TeamsGrid limit={12} />
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-4">Football Leagues</h2>
+            <LeaguesList />
+          </div>
         </section>
 
         <section className="mb-12">
