@@ -82,6 +82,20 @@ export interface League {
   season?: number;
 }
 
+export interface Sport {
+  id: string | number;
+  name: string;
+  count?: number;
+}
+
+export interface Competition {
+  id: string | number;
+  name: string;
+  sport?: string;
+  country?: string;
+  count?: number;
+}
+
 // Sports IDs for AllScores API
 export const SPORT_IDS = {
   FOOTBALL: 1,
@@ -150,5 +164,22 @@ export const allscores = {
     limit?: number;
   }): Promise<{ fixtures?: any[]; data?: any[] }> {
     return apiRequest('/fixtures', { params });
+  },
+
+  async getSports(params?: {
+    timezone?: string;
+    langId?: number;
+    withCount?: boolean;
+  }): Promise<{ sports?: Sport[]; data?: Sport[] }> {
+    return apiRequest('/sports', { params });
+  },
+
+  async getCompetitions(params?: {
+    timezone?: string;
+    langId?: number;
+    sport?: number | string;
+    withCount?: boolean;
+  }): Promise<{ competitions?: Competition[]; data?: Competition[] }> {
+    return apiRequest('/competitions', { params });
   },
 };
