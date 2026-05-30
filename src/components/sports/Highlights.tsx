@@ -14,7 +14,7 @@ export default function Highlights() {
       try {
         setLoading(true);
         setError(null);
-        const result = await football.getHighlights({ limit: 12 });
+        const result = await football.getHighlights({ country: 'England', limit: 12 });
         setHighlights(result.data || []);
       } catch (err) {
         setError(

@@ -41,9 +41,9 @@ export default function AppLayout() {
         setApiLoading(true);
         setApiError(null);
         const [footballData, basketballData, nflData] = await Promise.all([
-          football.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
-          basketball.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
-          americanFootball.getMatches({ status: 'live', limit: 10 }).catch(() => ({ data: [] })),
+          football.getMatches({ limit: 10 }).catch(() => ({ data: [] })),
+          basketball.getMatches({ limit: 10 }).catch(() => ({ data: [] })),
+          americanFootball.getMatches({ limit: 10 }).catch(() => ({ data: [] })),
         ]);
 
         const matches: Match[] = [
