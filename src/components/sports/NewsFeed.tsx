@@ -1,14 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Eye, Share2, Calendar } from 'lucide-react';
 import { NewsArticle } from '@/data/sportsData';
+import { allscores, SPORT_IDS } from '@/api/allscores-client';
 
 interface NewsFeedProps {
   articles: NewsArticle[];
 }
 
-export default function NewsFeed({ articles }: NewsFeedProps) {
+export default function NewsFeed({ articles: initialArticles }: NewsFeedProps) {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [loadMore, setLoadMore] = useState(false);
+  const [articles, setArticles] = useState<NewsArticle[]>(initialArticles);
+  const [apiLoading, setApiLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        setApiLoading(true);
+        const result = await allscores.getNews({
+          sport: SPORT_IDS.FOOTBALL,
+          timezone: 'America/Chicago',
+          langId: 1,
+          limit: 20
+        }).catch(() => ({ news: [] }));
+
+        const newsItems = result.news || result.data || [];
+        if (newsItems.length > 0) {
+          const formattedArticles: NewsArticle[] = newsItems.map((item: any, idx: number) => ({
+            id: item.id || `news-${idx}`,
+            title: item.title || 'Untitled',
+            summary: item.description || item.content || '',
+            content: item.content || item.description || '',
+            category: 'Sports News',
+            image: item.image || 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=400&fit=crop',
+            publishedAt: item.date || new Date().toISOString(),
+            author: item.source || 'AllScores',
+            featured: idx < 2,
+            views: Math.floor(Math.random() * 100000),
+          }));
+          setArticles(formattedArticles);
+        } else {
+          setArticles(initialArticles);
+        }
+      } catch (err) {
+        console.error('Error fetching news from AllScores:', err);
+        setArticles(initialArticles);
+      } finally {
+        setApiLoading(false);
+      }
+    }
+
+    fetchNews();
+  }, [initialArticles]);
 
   const featuredArticles = articles.filter((a) => a.featured);
   const regularArticles = articles.filter((a) => !a.featured);
