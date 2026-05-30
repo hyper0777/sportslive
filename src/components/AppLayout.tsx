@@ -8,6 +8,8 @@ import {
   topPlayers,
 } from '@/data/sportsData';
 import type { Match } from '@/data/sportsData';
+import { football, basketball, americanFootball } from '@/api/highlightly-client';
+import { footballHighlights } from '@/api/football-highlights-client';
 import Header from './sports/Header';
 import HeroSection from './sports/HeroSection';
 import LiveScores from './sports/LiveScores';
@@ -34,8 +36,49 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setApiMatches(liveMatches);
-    setApiLoading(false);
+    async function fetchMatches() {
+      try {
+        setApiLoading(true);
+        setApiError(null);
+
+        // Try football-highlights API first
+        const matches = await footballHighlights.getMatches({
+          country: 'England',
+          limit: 10
+        });
+
+        if (matches && matches.length > 0) {
+          const formattedMatches: Match[] = matches.map((m: any) => ({
+            id: m.id || `match-${Math.random()}`,
+            homeTeam: m.homeTeam?.name || 'Unknown',
+            awayTeam: m.awayTeam?.name || 'Unknown',
+            homeScore: m.score?.home || 0,
+            awayScore: m.score?.away || 0,
+            league: m.league?.name || 'Football',
+            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
+            startTime: m.startDate || new Date().toISOString(),
+            venue: 'TBD',
+            homeTeamColor: '#FF8C42',
+            awayTeamColor: '#4DA6FF',
+            homeAbbr: m.homeTeam?.name?.substring(0, 3) || 'HOM',
+            awayAbbr: m.awayTeam?.name?.substring(0, 3) || 'AWY',
+            matchday: 1,
+          }));
+          setApiMatches(formattedMatches);
+        } else {
+          setApiMatches(liveMatches);
+        }
+      } catch (err) {
+        console.error('Error fetching from football-highlights API:', err);
+        // Fallback to mock data
+        setApiMatches(liveMatches);
+        setApiError('No live matches available from API');
+      } finally {
+        setApiLoading(false);
+      }
+    }
+
+    fetchMatches();
   }, []);
 
   const scoreState = useScoreSimulator(liveMatches);
