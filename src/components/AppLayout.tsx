@@ -42,7 +42,7 @@ export default function AppLayout() {
 
         // Use sport-highlights API with required parameters
         const sportMatches = await football.getMatches({
-          season: 2024,
+          season: 2026,
           limit: 10
         }).catch(() => ({ data: [] }));
 
