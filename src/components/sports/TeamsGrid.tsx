@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, Loader } from 'lucide-react';
-import { football } from '@/api/highlightly-client';
-import type { Team } from '@/api/highlightly-client';
 
 interface TeamsGridProps {
   league?: string;
@@ -14,35 +12,23 @@ export default function TeamsGrid({
   country,
   limit = 8,
 }: TeamsGridProps) {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTeams() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await football.getTeams({
-          league,
-          country,
-          limit,
-        });
-        setTeams(result.data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load teams',
-        );
-        console.error('Error fetching teams:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTeams();
-  }, [league, country, limit]);
+    const mockTeams = [
+      { id: 't1', name: 'Manchester United', logo: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100' },
+      { id: 't2', name: 'Liverpool', logo: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=100' },
+      { id: 't3', name: 'Manchester City', logo: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=100' },
+      { id: 't4', name: 'Arsenal', logo: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100' },
+      { id: 't5', name: 'Chelsea', logo: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=100' },
+      { id: 't6', name: 'Tottenham', logo: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=100' },
+      { id: 't7', name: 'Aston Villa', logo: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100' },
+      { id: 't8', name: 'Brighton', logo: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=100' },
+    ];
+    setTeams(mockTeams.slice(0, limit));
+  }, [limit]);
 
   if (loading) {
     return (

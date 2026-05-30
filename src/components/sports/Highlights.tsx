@@ -1,34 +1,57 @@
 import { useState, useEffect } from 'react';
 import { Play, AlertCircle, Loader } from 'lucide-react';
-import { football } from '@/api/highlightly-client';
-import type { Highlight } from '@/api/highlightly-client';
 
 export default function Highlights() {
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [highlights, setHighlights] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'football'>('all');
 
   useEffect(() => {
-    async function fetchHighlights() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await football.getHighlights({ country: 'England', limit: 12 });
-        setHighlights(result.data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load highlights',
-        );
-        console.error('Error fetching highlights:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchHighlights();
+    setHighlights([
+      {
+        id: 'h1',
+        title: 'Manchester United vs Liverpool - Full Highlights',
+        duration: 120,
+        thumbnail: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'h2',
+        title: 'Arsenal vs Chelsea - Match Highlights',
+        duration: 95,
+        thumbnail: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'h3',
+        title: 'Manchester City vs Tottenham - Extended Highlights',
+        duration: 140,
+        thumbnail: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'h4',
+        title: 'Liverpool vs Everton - Highlights',
+        duration: 110,
+        thumbnail: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'h5',
+        title: 'Tottenham vs Brighton - Match Highlights',
+        duration: 105,
+        thumbnail: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'h6',
+        title: 'Aston Villa vs Wolverhampton - Highlights',
+        duration: 115,
+        thumbnail: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=400&h=225&fit=crop',
+        createdAt: new Date().toISOString(),
+      },
+    ]);
   }, []);
 
   if (loading) {

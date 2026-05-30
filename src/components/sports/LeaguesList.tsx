@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, Loader, Trophy } from 'lucide-react';
-import { football } from '@/api/highlightly-client';
-import type { League } from '@/api/highlightly-client';
 
 interface LeaguesListProps {
   country?: string;
@@ -12,34 +10,20 @@ export default function LeaguesList({
   country,
   season,
 }: LeaguesListProps) {
-  const [leagues, setLeagues] = useState<League[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [leagues, setLeagues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchLeagues() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await football.getLeagues({
-          country,
-          season,
-          limit: 20,
-        });
-        setLeagues(result.data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load leagues',
-        );
-        console.error('Error fetching leagues:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchLeagues();
+    const mockLeagues = [
+      { id: 'l1', name: 'Premier League', country: 'England', logo: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100' },
+      { id: 'l2', name: 'La Liga', country: 'Spain', logo: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=100' },
+      { id: 'l3', name: 'Serie A', country: 'Italy', logo: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=100' },
+      { id: 'l4', name: 'Bundesliga', country: 'Germany', logo: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100' },
+      { id: 'l5', name: 'Ligue 1', country: 'France', logo: 'https://images.unsplash.com/photo-1552671405-112edc97a5c8?w=100' },
+      { id: 'l6', name: 'Eredivisie', country: 'Netherlands', logo: 'https://images.unsplash.com/photo-1517747292ec5f4f8b1cfcb6b0bd87e7?w=100' },
+    ];
+    setLeagues(mockLeagues);
   }, [country, season]);
 
   if (loading) {

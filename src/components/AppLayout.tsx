@@ -24,7 +24,6 @@ import TeamsGrid from './sports/TeamsGrid';
 import LeaguesList from './sports/LeaguesList';
 import { useScoreSimulator } from './sports/useScoreSimulator';
 import BettingInsights from './sports/BettingInsights';
-import { football, basketball, americanFootball } from '@/api/highlightly-client';
 
 export default function AppLayout() {
   const [selectedSport, setSelectedSport] = useState('all');
@@ -34,87 +33,12 @@ export default function AppLayout() {
   const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Try to fetch from API on mount
   useEffect(() => {
-    async function fetchMatches() {
-      try {
-        setApiLoading(true);
-        setApiError(null);
-        const [footballData, basketballData, nflData] = await Promise.all([
-          football.getMatches({ country: 'England', limit: 10 }).catch(() => ({ data: [] })),
-          basketball.getMatches({ season: 2024, limit: 10 }).catch(() => ({ data: [] })),
-          americanFootball.getMatches({ season: 2024, limit: 10 }).catch(() => ({ data: [] })),
-        ]);
-
-        const matches: Match[] = [
-          ...(footballData.data || []).map((m: any) => ({
-            id: m.id,
-            homeTeam: m.homeTeam?.name || 'Unknown',
-            awayTeam: m.awayTeam?.name || 'Unknown',
-            homeScore: m.score?.home || 0,
-            awayScore: m.score?.away || 0,
-            league: m.league?.name || 'Football',
-            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
-            startTime: m.startDate || new Date().toISOString(),
-            venue: 'TBD',
-            homeTeamColor: '#FF8C42',
-            awayTeamColor: '#1a1a1a',
-            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
-            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
-            matchday: 1,
-          })),
-          ...(basketballData.data || []).map((m: any) => ({
-            id: m.id,
-            homeTeam: m.homeTeam?.name || 'Unknown',
-            awayTeam: m.awayTeam?.name || 'Unknown',
-            homeScore: m.score?.home || 0,
-            awayScore: m.score?.away || 0,
-            league: m.league?.name || 'Basketball',
-            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
-            startTime: m.startDate || new Date().toISOString(),
-            venue: 'TBD',
-            homeTeamColor: '#1E90FF',
-            awayTeamColor: '#FFD700',
-            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
-            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
-            matchday: 1,
-          })),
-          ...(nflData.data || []).map((m: any) => ({
-            id: m.id,
-            homeTeam: m.homeTeam?.name || 'Unknown',
-            awayTeam: m.awayTeam?.name || 'Unknown',
-            homeScore: m.score?.home || 0,
-            awayScore: m.score?.away || 0,
-            league: m.league?.name || 'NFL',
-            status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
-            startTime: m.startDate || new Date().toISOString(),
-            venue: 'TBD',
-            homeTeamColor: '#003D7A',
-            awayTeamColor: '#B0B0B0',
-            homeAbbr: m.homeTeam?.name?.slice(0, 3).toUpperCase() || 'HOM',
-            awayAbbr: m.awayTeam?.name?.slice(0, 3).toUpperCase() || 'AWY',
-            matchday: 1,
-          })),
-        ];
-
-        if (matches.length > 0) {
-          setApiMatches(matches);
-        } else {
-          setApiError('No live matches available from API');
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to fetch matches';
-        setApiError(errorMsg);
-        console.error('API fetch error:', err);
-      } finally {
-        setApiLoading(false);
-      }
-    }
-
-    fetchMatches();
+    setApiMatches(liveMatches);
+    setApiLoading(false);
   }, []);
 
-  const scoreState = useScoreSimulator(apiMatches.length > 0 ? apiMatches : liveMatches);
+  const scoreState = useScoreSimulator(liveMatches);
 
   const sportFilteredMatches = selectedSport === 'all'
     ? scoreState.matches
