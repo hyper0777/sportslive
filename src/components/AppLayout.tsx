@@ -8,7 +8,7 @@ import {
   topPlayers,
 } from '@/data/sportsData';
 import type { Match } from '@/data/sportsData';
-import { football, basketball, americanFootball } from '@/api/highlightly-client';
+import { allscores } from '@/api/allscores-client';
 import Header from './sports/Header';
 import HeroSection from './sports/HeroSection';
 import LiveScores from './sports/LiveScores';
@@ -40,28 +40,32 @@ export default function AppLayout() {
         setApiLoading(true);
         setApiError(null);
 
-        // Use sport-highlights API with required parameters
-        const sportMatches = await football.getMatches({
-          season: 2026,
+        // Use AllScores fixtures API for better reliability
+        const fixturesResult = await allscores.getFixtures({
+          langId: 1,
+          timezone: 'America/Chicago',
+          competition: 103, // Premier League
           limit: 10
-        }).catch(() => ({ data: [] }));
+        }).catch(() => ({ fixtures: [] }));
 
-        if (sportMatches.data && sportMatches.data.length > 0) {
-          const formattedMatches: Match[] = sportMatches.data.map((m: any) => ({
-            id: m.id || `match-${Math.random()}`,
-            homeTeam: m.homeTeam?.name || 'Unknown',
-            awayTeam: m.awayTeam?.name || 'Unknown',
-            homeScore: m.score?.home || 0,
-            awayScore: m.score?.away || 0,
-            league: m.league?.name || 'Football',
+        const fixtures = fixturesResult.fixtures || fixturesResult.data || [];
+
+        if (fixtures && fixtures.length > 0) {
+          const formattedMatches: Match[] = fixtures.map((m: any, idx: number) => ({
+            id: m.id || `match-${idx}`,
+            homeTeam: m.homeTeam?.name || m.home?.name || 'Unknown',
+            awayTeam: m.awayTeam?.name || m.away?.name || 'Unknown',
+            homeScore: m.score?.home || m.homeScore || 0,
+            awayScore: m.score?.away || m.awayScore || 0,
+            league: m.competition?.name || 'Football',
             status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
-            startTime: m.startDate || new Date().toISOString(),
-            venue: 'TBD',
+            startTime: m.startDate || m.date || new Date().toISOString(),
+            venue: m.venue?.name || 'TBD',
             homeTeamColor: '#FF8C42',
             awayTeamColor: '#4DA6FF',
-            homeAbbr: m.homeTeam?.name?.substring(0, 3) || 'HOM',
-            awayAbbr: m.awayTeam?.name?.substring(0, 3) || 'AWY',
-            matchday: 1,
+            homeAbbr: (m.homeTeam?.name || m.home?.name || 'Home')?.substring(0, 3).toUpperCase() || 'HOM',
+            awayAbbr: (m.awayTeam?.name || m.away?.name || 'Away')?.substring(0, 3).toUpperCase() || 'AWY',
+            matchday: m.round || 1,
           }));
           setApiMatches(formattedMatches);
         } else {

@@ -142,4 +142,13 @@ export const allscores = {
   }): Promise<any> {
     return apiRequest('/standings', { params });
   },
+
+  async getFixtures(params?: {
+    langId?: number;
+    timezone?: string;
+    competition?: number | string;
+    limit?: number;
+  }): Promise<{ fixtures?: any[]; data?: any[] }> {
+    return apiRequest('/fixtures', { params });
+  },
 };
