@@ -229,6 +229,10 @@ export const football = {
   }): Promise<{ data: any[]; pagination?: any }> {
     return apiRequest('/football/odds', { params });
   },
+
+  async getLiveEvents(matchId: string): Promise<any[]> {
+    return apiRequest(`/football/events/${matchId}`);
+  },
 };
 
 // Basketball API methods (similar structure)

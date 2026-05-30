@@ -137,10 +137,8 @@ export const footballHighlights = {
   },
 
   async getMatches(params?: {
-    country?: string;
     league?: string;
     season?: number;
-    status?: 'scheduled' | 'live' | 'finished';
     page?: number;
     limit?: number;
   }): Promise<Match[]> {
@@ -152,8 +150,6 @@ export const footballHighlights = {
   },
 
   async getHighlights(params?: {
-    country?: string;
-    league?: string;
     page?: number;
     limit?: number;
   }): Promise<Highlight[]> {
