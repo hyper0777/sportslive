@@ -9,7 +9,6 @@ import {
 } from '@/data/sportsData';
 import type { Match } from '@/data/sportsData';
 import { football, basketball, americanFootball } from '@/api/highlightly-client';
-import { footballHighlights } from '@/api/football-highlights-client';
 import Header from './sports/Header';
 import HeroSection from './sports/HeroSection';
 import LiveScores from './sports/LiveScores';
@@ -41,13 +40,14 @@ export default function AppLayout() {
         setApiLoading(true);
         setApiError(null);
 
-        // Try football-highlights API for matches
-        const matches = await footballHighlights.getMatches({
+        // Use sport-highlights API with required parameters
+        const sportMatches = await football.getMatches({
+          season: 2024,
           limit: 10
-        });
+        }).catch(() => ({ data: [] }));
 
-        if (matches && matches.length > 0) {
-          const formattedMatches: Match[] = matches.map((m: any) => ({
+        if (sportMatches.data && sportMatches.data.length > 0) {
+          const formattedMatches: Match[] = sportMatches.data.map((m: any) => ({
             id: m.id || `match-${Math.random()}`,
             homeTeam: m.homeTeam?.name || 'Unknown',
             awayTeam: m.awayTeam?.name || 'Unknown',
@@ -65,30 +65,8 @@ export default function AppLayout() {
           }));
           setApiMatches(formattedMatches);
         } else {
-          // Fallback to sport-highlights API
-          const sportMatches = await football.getMatches({ limit: 10 }).catch(() => ({ data: [] }));
-          if (sportMatches.data && sportMatches.data.length > 0) {
-            const formattedMatches: Match[] = sportMatches.data.map((m: any) => ({
-              id: m.id || `match-${Math.random()}`,
-              homeTeam: m.homeTeam?.name || 'Unknown',
-              awayTeam: m.awayTeam?.name || 'Unknown',
-              homeScore: m.score?.home || 0,
-              awayScore: m.score?.away || 0,
-              league: m.league?.name || 'Football',
-              status: (m.status as 'live' | 'scheduled' | 'finished' | 'halftime') || 'scheduled',
-              startTime: m.startDate || new Date().toISOString(),
-              venue: 'TBD',
-              homeTeamColor: '#FF8C42',
-              awayTeamColor: '#4DA6FF',
-              homeAbbr: m.homeTeam?.name?.substring(0, 3) || 'HOM',
-              awayAbbr: m.awayTeam?.name?.substring(0, 3) || 'AWY',
-              matchday: 1,
-            }));
-            setApiMatches(formattedMatches);
-          } else {
-            setApiMatches(liveMatches);
-            setApiError('No live matches available from API');
-          }
+          setApiMatches(liveMatches);
+          setApiError('No live matches available from API');
         }
       } catch (err) {
         console.error('Error fetching matches:', err);
