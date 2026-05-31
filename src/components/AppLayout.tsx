@@ -30,21 +30,51 @@ export default function AppLayout() {
   const [selectedSport, setSelectedSport] = useState('all');
   const [selectedLeague, setSelectedLeague] = useState('all');
   const [apiMatches, setApiMatches] = useState<Match[]>([]);
+  const [competitions, setCompetitions] = useState<any[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
+  const [competitionsLoading, setCompetitionsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Fetch competitions when sport changes
+  useEffect(() => {
+    async function fetchCompetitions() {
+      try {
+        setCompetitionsLoading(true);
+        const result = await allscores.getCompetitions({
+          timezone: 'America/Chicago',
+          langId: 1,
+          withCount: true,
+        }).catch(() => ({ competitions: [] }));
+
+        const competitionsList = result.competitions || result.data || [];
+        setCompetitions(competitionsList);
+      } catch (err) {
+        console.error('Error fetching competitions:', err);
+        setCompetitions([]);
+      } finally {
+        setCompetitionsLoading(false);
+      }
+    }
+
+    fetchCompetitions();
+  }, [selectedSport]);
+
+  // Fetch fixtures/matches
   useEffect(() => {
     async function fetchMatches() {
       try {
         setApiLoading(true);
         setApiError(null);
 
+        // Default to first competition if available
+        const competitionId = selectedLeague !== 'all' ? selectedLeague : (competitions[0]?.id || 103);
+
         // Use AllScores fixtures API for better reliability
         const fixturesResult = await allscores.getFixtures({
           langId: 1,
           timezone: 'America/Chicago',
-          competition: 103, // Premier League
+          competition: competitionId,
           limit: 10
         }).catch(() => ({ fixtures: [] }));
 
@@ -82,8 +112,10 @@ export default function AppLayout() {
       }
     }
 
-    fetchMatches();
-  }, []);
+    if (competitions.length > 0) {
+      fetchMatches();
+    }
+  }, [selectedLeague, competitions]);
 
   const scoreState = useScoreSimulator(liveMatches);
 
@@ -107,8 +139,13 @@ export default function AppLayout() {
       });
 
   const leagues = useMemo(
-    () => ['all', ...Array.from(new Set(sportFilteredMatches.map((m) => m.league))).sort()],
-    [sportFilteredMatches],
+    () => {
+      if (competitions.length > 0) {
+        return ['all', ...competitions.map((c: any) => c.name || c.id)];
+      }
+      return ['all', ...Array.from(new Set(sportFilteredMatches.map((m) => m.league))).sort()];
+    },
+    [sportFilteredMatches, competitions],
   );
 
   const filteredMatches = selectedLeague === 'all'

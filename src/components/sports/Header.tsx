@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X, Search } from 'lucide-react';
+import { allscores } from '@/api/allscores-client';
 
 interface HeaderProps {
   selectedSport: string;
@@ -7,18 +8,62 @@ interface HeaderProps {
   onSearch?: (query: string) => void;
 }
 
+interface SportItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
 export default function Header({ selectedSport, onSportChange, onSearch }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const sports = [
+  const [sports, setSports] = useState<SportItem[]>([
     { id: 'all', label: 'All Sports', icon: '⚽' },
-    { id: 'football', label: 'Football', icon: '🏈' },
-    { id: 'basketball', label: 'Basketball', icon: '🏀' },
-    { id: 'soccer', label: 'Soccer', icon: '⚽' },
-    { id: 'baseball', label: 'Baseball', icon: '⚾' },
-    { id: 'tennis', label: 'Tennis', icon: '🎾' },
-  ];
+  ]);
+  const [sportsLoading, setSportsLoading] = useState(true);
+
+  const sportIcons: Record<string, string> = {
+    football: '🏈',
+    soccer: '⚽',
+    basketball: '🏀',
+    baseball: '⚾',
+    tennis: '🎾',
+    hockey: '🏒',
+    rugby: '🏉',
+    volleyball: '🏐',
+  };
+
+  useEffect(() => {
+    async function fetchSports() {
+      try {
+        setSportsLoading(true);
+        const result = await allscores.getSports({
+          timezone: 'America/Chicago',
+          langId: 1,
+          withCount: true,
+        }).catch(() => ({ sports: [] }));
+
+        const sportsList = result.sports || result.data || [];
+        if (sportsList.length > 0) {
+          const formattedSports: SportItem[] = [
+            { id: 'all', label: 'All Sports', icon: '⚽' },
+            ...sportsList.map((sport: any) => ({
+              id: (sport.id || sport.name || '').toString().toLowerCase().replace(/\s+/g, '-'),
+              label: sport.name || 'Sport',
+              icon: sportIcons[sport.name?.toLowerCase() || 'soccer'] || '⚽',
+            })),
+          ];
+          setSports(formattedSports);
+        }
+      } catch (err) {
+        console.error('Error fetching sports:', err);
+      } finally {
+        setSportsLoading(false);
+      }
+    }
+
+    fetchSports();
+  }, []);
 
   const handleSportChange = (sportId: string) => {
     onSportChange(sportId);
