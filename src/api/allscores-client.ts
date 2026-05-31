@@ -88,14 +88,6 @@ export interface Sport {
   count?: number;
 }
 
-export interface Competition {
-  id: string | number;
-  name: string;
-  sport?: string;
-  country?: string;
-  count?: number;
-}
-
 // Sports IDs for AllScores API
 export const SPORT_IDS = {
   FOOTBALL: 1,
@@ -172,14 +164,5 @@ export const allscores = {
     withCount?: boolean;
   }): Promise<{ sports?: Sport[]; data?: Sport[] }> {
     return apiRequest('/sports', { params });
-  },
-
-  async getCompetitions(params?: {
-    timezone?: string;
-    langId?: number;
-    sport?: number | string;
-    withCount?: boolean;
-  }): Promise<{ competitions?: Competition[]; data?: Competition[] }> {
-    return apiRequest('/competitions', { params });
   },
 };

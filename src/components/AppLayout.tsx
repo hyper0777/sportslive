@@ -36,28 +36,16 @@ export default function AppLayout() {
   const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Fetch competitions when sport changes
+  // Set default competitions based on sport
   useEffect(() => {
-    async function fetchCompetitions() {
-      try {
-        setCompetitionsLoading(true);
-        const result = await allscores.getCompetitions({
-          timezone: 'America/Chicago',
-          langId: 1,
-          withCount: true,
-        }).catch(() => ({ competitions: [] }));
-
-        const competitionsList = result.competitions || result.data || [];
-        setCompetitions(competitionsList);
-      } catch (err) {
-        console.error('Error fetching competitions:', err);
-        setCompetitions([]);
-      } finally {
-        setCompetitionsLoading(false);
-      }
-    }
-
-    fetchCompetitions();
+    const defaultCompetitions = [
+      { id: 103, name: 'Premier League' },
+      { id: 39, name: 'La Liga' },
+      { id: 140, name: 'Serie A' },
+      { id: 78, name: 'Bundesliga' },
+      { id: 61, name: 'Ligue 1' },
+    ];
+    setCompetitions(defaultCompetitions);
   }, [selectedSport]);
 
   // Fetch fixtures/matches
